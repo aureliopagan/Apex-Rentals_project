@@ -25,7 +25,7 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {
-        "message": "¡Bienvenido a Apex Rentals API!", 
+        "message": "Welcome to Apex Rentals API!", 
         "status": "running",
         "version": "1.0.0"
     }
