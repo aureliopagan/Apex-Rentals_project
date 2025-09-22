@@ -1,69 +1,73 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, DECIMAL, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from datetime import datetime
+from app import db
 import enum
-from ..database import Base
 
 class BookingStatus(enum.Enum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
-    ACTIVE = "active"
-    COMPLETED = "completed"
     CANCELLED = "cancelled"
-    REJECTED = "rejected"
+    COMPLETED = "completed"
 
-class PaymentStatus(enum.Enum):
-    PENDING = "pending"
-    PAID = "paid"
-    PARTIAL = "partial"
-    REFUNDED = "refunded"
-    FAILED = "failed"
-
-class Booking(Base):
-    __tablename__ = "bookings"
+class Booking(db.Model):
+    __tablename__ = 'bookings'
     
-    id = Column(Integer, primary_key=True, index=True)
-    client_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
-    
-    # Booking details
-    start_datetime = Column(DateTime(timezone=True), nullable=False)
-    end_datetime = Column(DateTime(timezone=True), nullable=False)
-    total_hours = Column(Integer, nullable=False)
-    total_days = Column(Integer, nullable=False)
-    
-    # Pricing
-    hourly_rate = Column(DECIMAL(10, 2), nullable=False)
-    daily_rate = Column(DECIMAL(10, 2), nullable=False)
-    subtotal = Column(DECIMAL(10, 2), nullable=False)
-    tax_amount = Column(DECIMAL(10, 2), nullable=False, default=0)
-    service_fee = Column(DECIMAL(10, 2), nullable=False, default=0)
-    total_amount = Column(DECIMAL(10, 2), nullable=False)
-    
-    # Status and payment
-    booking_status = Column(Enum(BookingStatus), nullable=False, default=BookingStatus.PENDING)
-    payment_status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING)
-    payment_method = Column(String(50), nullable=True)
-    transaction_id = Column(String(100), nullable=True)
-    
-    # Additional info
-    special_requests = Column(Text, nullable=True)
-    cancellation_reason = Column(Text, nullable=True)
-    is_reviewed_by_client = Column(Boolean, default=False)
-    is_reviewed_by_owner = Column(Boolean, default=False)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    confirmed_at = Column(DateTime(timezone=True), nullable=True)
-    cancelled_at = Column(DateTime(timezone=True), nullable=True)
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    asset_id = db.Column(db.Integer, db.ForeignKey('assets.id'), nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+    total_price = db.Column(db.Float, nullable=False)
+    status = db.Column(db.Enum(BookingStatus), default=BookingStatus.PENDING)
+    special_requests = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    client = relationship("User", foreign_keys=[client_id], back_populates="bookings_made")
-    owner = relationship("User", foreign_keys=[owner_id], back_populates="bookings_received")
-    asset = relationship("Asset", back_populates="bookings")
-    reviews = relationship("Review", back_populates="booking", cascade="all, delete-orphan")
+    client = db.relationship("User", foreign_keys=[client_id], backref="bookings_made")
+    owner = db.relationship("User", foreign_keys=[owner_id], backref="bookings_received")
+    asset = db.relationship("Asset", backref="bookings")
+    
+    def to_dict(self, include_relations=False):
+        """Convert booking object to dictionary"""
+        booking_dict = {
+            'id': self.id,
+            'client_id': self.client_id,
+            'owner_id': self.owner_id,
+            'asset_id': self.asset_id,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
+            'total_price': self.total_price,
+            'status': self.status.value if self.status else None,
+            'special_requests': self.special_requests,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+        
+        # Include related data if requested
+        if include_relations:
+            if self.client:
+                booking_dict['client'] = {
+                    'id': self.client.id,
+                    'first_name': self.client.first_name,
+                    'last_name': self.client.last_name,
+                    'email': self.client.email
+                }
+            if self.asset:
+                booking_dict['asset'] = {
+                    'id': self.asset.id,
+                    'title': self.asset.title,
+                    'asset_type': self.asset.asset_type.value,
+                    'location': self.asset.location
+                }
+        
+        return booking_dict
+    
+    def calculate_total_days(self):
+        """Calculate total days for the booking"""
+        if self.start_date and self.end_date:
+            return (self.end_date - self.start_date).days
+        return 0
     
     def __repr__(self):
-        return f"<Booking(id={self.id}, asset_id={self.asset_id}, status='{self.booking_status.value}')>"
+        return f'<Booking {self.id} - {self.status.value}>'

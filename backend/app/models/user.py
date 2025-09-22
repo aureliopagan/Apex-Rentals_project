@@ -1,38 +1,52 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 import enum
-from ..database import Base
 
-class UserRole(enum.Enum):
+# Import db from the main app
+from app import db
+
+class UserType(enum.Enum):
     CLIENT = "client"
     OWNER = "owner"
-    ADMIN = "admin"
+    BOTH = "both"
 
-class User(Base):
-    __tablename__ = "users"
+class User(db.Model):
+    __tablename__ = 'users'
     
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    username = Column(String(100), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    phone = Column(String(20), nullable=True)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.CLIENT)
-    is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
-    profile_image = Column(String(500), nullable=True)
-    bio = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(20))
+    user_type = db.Column(db.Enum(UserType), nullable=False)
+    profile_image = db.Column(db.String(200))
+    is_verified = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    owned_assets = relationship("Asset", back_populates="owner", cascade="all, delete-orphan")
-    bookings_made = relationship("Booking", foreign_keys="[Booking.client_id]", back_populates="client")
-    bookings_received = relationship("Booking", foreign_keys="[Booking.owner_id]", back_populates="owner")
-    reviews_given = relationship("Review", foreign_keys="[Review.reviewer_id]", back_populates="reviewer")
-    reviews_received = relationship("Review", foreign_keys="[Review.reviewed_id]", back_populates="reviewed")
+    def set_password(self, password):
+        """Hash and set password"""
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        """Check if provided password matches hash"""
+        return check_password_hash(self.password_hash, password)
+    
+    def to_dict(self):
+        """Convert user object to dictionary"""
+        return {
+            'id': self.id,
+            'email': self.email,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'phone': self.phone,
+            'user_type': self.user_type.value if self.user_type else None,
+            'profile_image': self.profile_image,
+            'is_verified': self.is_verified,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
     
     def __repr__(self):
-        return f"<User(id={self.id}, username='{self.username}', role='{self.role.value}')>"
+        return f'<User {self.email}>'
