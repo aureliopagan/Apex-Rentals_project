@@ -18,7 +18,9 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = False  # No expiration for development
     
     # CORS configuration
-    CORS_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']  # Add your frontend URLs
+    CORS_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000']
+    CORS_ALLOW_HEADERS = ['Content-Type', 'Authorization']
+    CORS_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
     
     # File upload configuration
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size

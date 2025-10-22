@@ -28,9 +28,9 @@ class Asset(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
+    # Relationships - FIXED
     owner = db.relationship("User", backref="owned_assets")
-    images = db.relationship("AssetImage", back_populates="asset", cascade="all, delete-orphan")
+    images = db.relationship("AssetImage", back_populates="asset", cascade="all, delete-orphan", lazy='joined')
     
     def to_dict(self):
         """Convert asset object to dictionary"""
@@ -65,7 +65,7 @@ class AssetImage(db.Model):
     image_url = db.Column(db.String(200), nullable=False)
     is_primary = db.Column(db.Boolean, default=False)
     
-    # Relationships
+    # Relationships - FIXED
     asset = db.relationship("Asset", back_populates="images")
     
     def to_dict(self):

@@ -17,8 +17,10 @@ def create_app():
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)
-    CORS(app)
     jwt.init_app(app)
+    
+    # Configure CORS - Allow all for development
+    CORS(app)
     
     # Import models (this ensures they're registered with SQLAlchemy)
     from app.models.user import User
@@ -37,8 +39,23 @@ def create_app():
     app.register_blueprint(bookings_bp, url_prefix='/api/bookings')
     app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
     
+    # Serve uploaded files
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        from flask import send_from_directory
+        return send_from_directory('uploads', filename)
+    
     @app.route('/')
     def health_check():
         return {'message': 'Apex Rentals API is running!', 'status': 'healthy'}
+    
+    # Add CORS headers to all responses
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
     
     return app
