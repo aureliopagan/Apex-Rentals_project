@@ -30,10 +30,13 @@ class Asset(db.Model):
     
     # Relationships - FIXED
     owner = db.relationship("User", backref="owned_assets")
-    images = db.relationship("AssetImage", back_populates="asset", cascade="all, delete-orphan", lazy='joined')
+    images = db.relationship("AssetImage", back_populates="asset", cascade="all, delete-orphan", lazy='joined', order_by="desc(AssetImage.is_primary)")
     
     def to_dict(self):
         """Convert asset object to dictionary"""
+        # Sort images to ensure primary image is first, then by ID for consistent order
+        sorted_images = sorted(self.images, key=lambda x: (not x.is_primary, x.id))
+        
         return {
             'id': self.id,
             'owner_id': self.owner_id,
@@ -51,7 +54,7 @@ class Asset(db.Model):
             'is_available': self.is_available,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'images': [img.to_dict() for img in self.images] if self.images else []
+            'images': [img.to_dict() for img in sorted_images]
         }
     
     def __repr__(self):

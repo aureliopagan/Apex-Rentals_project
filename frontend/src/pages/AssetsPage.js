@@ -103,6 +103,7 @@ const AssetsPage = () => {
     });
   };
 
+  // Fallback images for when no image is uploaded
   const getAssetImage = (type) => {
     switch (type) {
       case 'yacht': 
@@ -123,6 +124,25 @@ const AssetsPage = () => {
       case 'jet': return '✈️';
       default: return '🏖️';
     }
+  };
+
+  // Get the appropriate image URL for an asset
+  const getImageUrl = (asset) => {
+    // First, check if asset has uploaded images
+    if (asset.images && asset.images.length > 0) {
+      let imageUrl = asset.images[0].image_url;
+      
+      // If the URL starts with /uploads, prepend the backend URL
+      if (imageUrl.startsWith('/uploads')) {
+        imageUrl = `http://localhost:5000${imageUrl}`;
+      }
+      
+      console.log('Using uploaded image:', imageUrl, 'for asset:', asset.title);
+      return imageUrl;
+    }
+    // If no uploaded image, use fallback based on asset type
+    console.log('No uploaded image, using fallback for asset:', asset.title);
+    return getAssetImage(asset.asset_type);
   };
 
   if (loading) {
@@ -340,30 +360,20 @@ const AssetsPage = () => {
                   overflow: 'hidden',
                   position: 'relative'
                 }}>
-                  {asset.images && asset.images.length > 0 ? (
-                    <img 
-                      src={asset.images[0].image_url} 
-                      alt={asset.title}
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        e.target.src = getAssetImage(asset.asset_type);
-                      }}
-                    />
-                  ) : (
-                    <img 
-                      src={getAssetImage(asset.asset_type)} 
-                      alt={asset.title}
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover'
-                      }}
-                    />
-                  )}
+                  <img 
+                    src={getImageUrl(asset)} 
+                    alt={asset.title}
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover'
+                    }}
+                    onError={(e) => {
+                      console.error('Image failed to load:', e.target.src);
+                      // Only use fallback if uploaded image fails to load
+                      e.target.src = getAssetImage(asset.asset_type);
+                    }}
+                  />
                   
                   {/* Asset Type Badge */}
                   <div style={{
