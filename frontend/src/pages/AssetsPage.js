@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const AssetsPage = () => {
+  const location = useLocation();
   const [assets, setAssets] = useState([]);
   const [filteredAssets, setFilteredAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,10 +15,21 @@ const AssetsPage = () => {
     max_price: ''
   });
 
+  // Read category from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const category = params.get('category');
+    if (category) {
+      setFilters(prev => ({
+        ...prev,
+        type: category
+      }));
+    }
+  }, [location.search]);
+
   const loadAssets = async () => {
     try {
       console.log('Loading assets...');
-      // Use the exact URL format that works (with trailing slash based on your logs)
       const response = await axios.get('http://localhost:5000/api/assets/', {
         headers: {
           'Content-Type': 'application/json'
@@ -89,6 +101,19 @@ const AssetsPage = () => {
       min_price: '',
       max_price: ''
     });
+  };
+
+  const getAssetImage = (type) => {
+    switch (type) {
+      case 'yacht': 
+        return 'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=400&h=300&fit=crop';
+      case 'car': 
+        return 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&h=300&fit=crop';
+      case 'jet': 
+        return 'https://images.unsplash.com/photo-1540962351504-03099e0a754b?w=400&h=300&fit=crop';
+      default: 
+        return 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop';
+    }
   };
 
   const getAssetIcon = (type) => {
@@ -257,7 +282,7 @@ const AssetsPage = () => {
               <input
                 type="number"
                 name="max_price"
-                placeholder="No limit"
+                placeholder="Any"
                 value={filters.max_price}
                 onChange={handleFilterChange}
                 style={{
@@ -270,161 +295,170 @@ const AssetsPage = () => {
               />
             </div>
 
-            <button 
+            <button
               onClick={clearFilters}
-              className="btn btn-gold"
-              style={{ height: 'fit-content' }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#f3f4f6',
+                color: '#1a1a1a',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
             >
-              CLEAR ALL
+              CLEAR FILTERS
             </button>
           </div>
         </div>
 
-        <div style={{ 
-          marginBottom: '2rem', 
-          padding: '1rem', 
-          backgroundColor: 'rgba(114, 47, 55, 0.1)',
-          borderRadius: '0.5rem',
-          color: '#722f37',
-          fontWeight: '600'
-        }}>
-          Showing {filteredAssets.length} of {assets.length} luxury assets
+        {/* Results Summary */}
+        <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+          <p style={{ color: '#666666', fontSize: '1rem' }}>
+            Showing <strong>{filteredAssets.length}</strong> of <strong>{assets.length}</strong> assets
+            {filters.type && ` (${filters.type}s only)`}
+          </p>
         </div>
 
+        {/* Assets Grid */}
         {filteredAssets.length > 0 ? (
           <div className="grid grid-3" style={{ gap: '2rem' }}>
             {filteredAssets.map(asset => (
               <div key={asset.id} className="card" style={{ 
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-5px)';
-                e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
+                padding: '0',
+                overflow: 'hidden',
+                transition: 'all 0.3s ease'
               }}>
+                {/* Asset Image */}
                 <div style={{ 
-                  height: '200px', 
+                  height: '220px', 
                   backgroundColor: '#f3f4f6',
-                  borderRadius: '0.75rem 0.75rem 0 0',
                   overflow: 'hidden',
-                  marginBottom: '1rem',
                   position: 'relative'
                 }}>
                   {asset.images && asset.images.length > 0 ? (
                     <img 
-                      src={`http://localhost:5000${asset.images[0].image_url}`}
+                      src={asset.images[0].image_url} 
                       alt={asset.title}
                       style={{ 
                         width: '100%', 
                         height: '100%', 
-                        objectFit: 'cover' 
+                        objectFit: 'cover'
                       }}
                       onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af; font-size: 4rem;">${getAssetIcon(asset.asset_type)}</div>`;
+                        e.target.src = getAssetImage(asset.asset_type);
                       }}
                     />
                   ) : (
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      height: '100%',
-                      fontSize: '4rem'
-                    }}>
-                      {getAssetIcon(asset.asset_type)}
-                    </div>
+                    <img 
+                      src={getAssetImage(asset.asset_type)} 
+                      alt={asset.title}
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        objectFit: 'cover'
+                      }}
+                    />
                   )}
-
+                  
+                  {/* Asset Type Badge */}
                   <div style={{
                     position: 'absolute',
                     top: '1rem',
-                    right: '1rem',
+                    left: '1rem',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    color: 'white',
                     padding: '0.5rem 1rem',
-                    borderRadius: '2rem',
+                    borderRadius: '0.5rem',
                     fontSize: '0.85rem',
                     fontWeight: '600',
-                    backgroundColor: asset.is_available ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
-                    color: 'white',
-                    backdropFilter: 'blur(8px)',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
+                    backdropFilter: 'blur(10px)'
                   }}>
-                    {asset.is_available ? 'Available' : 'Unavailable'}
+                    {getAssetIcon(asset.asset_type)} {asset.asset_type}
                   </div>
                 </div>
 
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                    <h3 style={{ 
-                      fontSize: '1.25rem', 
-                      fontWeight: 'bold', 
-                      color: '#1a1a1a',
-                      flex: 1
-                    }}>
-                      {asset.title}
-                    </h3>
-                    <span style={{ 
-                      padding: '0.25rem 0.75rem',
-                      backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                      color: '#b8941f',
-                      borderRadius: '1rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      marginLeft: '0.5rem'
-                    }}>
-                      {asset.asset_type}
-                    </span>
-                  </div>
-
-                  <p style={{ color: '#666666', marginBottom: '0.5rem', fontSize: '0.95rem' }}>
-                    📍 {asset.location}
-                  </p>
-
+                {/* Asset Details */}
+                <div style={{ padding: '1.5rem' }}>
+                  <h3 style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: 'bold',
+                    marginBottom: '0.5rem',
+                    color: '#1a1a1a'
+                  }}>
+                    {asset.title}
+                  </h3>
+                  
                   {asset.brand && asset.model && (
-                    <p style={{ color: '#8b4513', marginBottom: '0.75rem', fontSize: '0.9rem', fontWeight: '500' }}>
+                    <p style={{ 
+                      color: '#666666', 
+                      fontSize: '0.9rem',
+                      marginBottom: '0.5rem'
+                    }}>
                       {asset.brand} {asset.model} {asset.year && `(${asset.year})`}
                     </p>
                   )}
 
-                  {asset.capacity && (
-                    <p style={{ color: '#666666', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
-                      👥 Capacity: {asset.capacity} people
-                    </p>
-                  )}
+                  <p style={{ 
+                    color: '#666666', 
+                    fontSize: '0.9rem',
+                    marginBottom: '1rem'
+                  }}>
+                    📍 {asset.location}
+                  </p>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '1rem'
+                  }}>
                     <div>
-                      <p style={{ 
+                      <span style={{ 
                         fontSize: '1.5rem', 
                         fontWeight: 'bold',
-                        background: 'linear-gradient(135deg, #d4af37 0%, #b8941f 100%)',
-                        backgroundClip: 'text',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent'
+                        color: '#d4af37'
                       }}>
-                        ${asset.price_per_day.toLocaleString()}
-                      </p>
-                      <p style={{ color: '#666666', fontSize: '0.85rem' }}>per day</p>
+                        ${asset.price_per_day}
+                      </span>
+                      <span style={{ 
+                        fontSize: '0.9rem', 
+                        color: '#666666' 
+                      }}>
+                        /day
+                      </span>
                     </div>
                     
-                    <div style={{ textAlign: 'right' }}>
-                      <div className="stars">⭐⭐⭐⭐⭐</div>
-                      <p style={{ color: '#666666', fontSize: '0.85rem' }}>4.8 (12 reviews)</p>
-                    </div>
+                    {!asset.is_available && (
+                      <span style={{
+                        backgroundColor: '#fee2e2',
+                        color: '#991b1b',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '600'
+                      }}>
+                        UNAVAILABLE
+                      </span>
+                    )}
                   </div>
 
                   <Link 
-                    to={`/assets/${asset.id}`} 
-                    className={`btn ${asset.is_available ? 'btn-gold' : 'btn-secondary'}`}
-                    style={{ width: '100%' }}
+                    to={`/assets/${asset.id}`}
+                    className="btn btn-gold"
+                    style={{
+                      display: 'block',
+                      textAlign: 'center',
+                      width: '100%',
+                      textDecoration: 'none'
+                    }}
                   >
-                    {asset.is_available ? 'View Details & Book' : 'View Details'}
+                    View Details
                   </Link>
                 </div>
               </div>
@@ -434,44 +468,28 @@ const AssetsPage = () => {
           <div style={{ 
             textAlign: 'center', 
             padding: '4rem 2rem',
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            backgroundColor: 'white',
             borderRadius: '1rem',
-            border: '1px solid rgba(212, 175, 55, 0.2)'
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
           }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
-            <h3 style={{ color: '#722f37', marginBottom: '1rem' }}>No assets found</h3>
-            <p style={{ color: '#666666', marginBottom: '2rem' }}>
-              {assets.length === 0 
-                ? 'No assets are currently available. Please check back later.'
-                : 'Try adjusting your filters or browse all available assets'
-              }
+            <p style={{ fontSize: '1.5rem', color: '#666666', marginBottom: '1rem' }}>
+              {filters.type ? `No ${filters.type}s found` : 'No assets found'}
             </p>
-            {assets.length > 0 && (
-              <button onClick={clearFilters} className="btn btn-gold">
-                Clear Filters
+            <p style={{ color: '#999999', marginBottom: '2rem' }}>
+              {filters.type || filters.location || filters.min_price || filters.max_price 
+                ? 'Try adjusting your filters' 
+                : 'Be the first to list a luxury asset!'}
+            </p>
+            {(filters.type || filters.location || filters.min_price || filters.max_price) && (
+              <button 
+                onClick={clearFilters}
+                className="btn btn-gold"
+              >
+                Clear All Filters
               </button>
             )}
           </div>
         )}
-
-        <div style={{ 
-          marginTop: '4rem',
-          padding: '3rem',
-          background: 'linear-gradient(135deg, #1a1a1a 0%, #722f37 50%, #d4af37 100%)',
-          borderRadius: '1rem',
-          textAlign: 'center',
-          color: 'white'
-        }}>
-          <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>
-            Own a Luxury Asset?
-          </h2>
-          <p style={{ fontSize: '1.1rem', marginBottom: '2rem', opacity: '0.9' }}>
-            Join our exclusive marketplace and start earning from your premium assets
-          </p>
-          <Link to="/register" className="btn btn-gold" style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}>
-            List Your Asset
-          </Link>
-        </div>
       </div>
     </div>
   );

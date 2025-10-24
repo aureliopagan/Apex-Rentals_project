@@ -10,8 +10,35 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #FFFFFF;
-  color: #1a1a1a;
+  background-color: #FFFFFF;
+  color: #000000;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Futuristic Geometric Pattern Background - VISIBLE BLACK ACCENTS FOR TESTING */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #FFFFFF;
+  background-image: 
+    /* Hexagonal pattern with black for visibility */
+    linear-gradient(30deg, rgba(0, 0, 0, 0.08) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.08) 87.5%, rgba(0, 0, 0, 0.08)),
+    linear-gradient(150deg, rgba(0, 0, 0, 0.08) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.08) 87.5%, rgba(0, 0, 0, 0.08)),
+    linear-gradient(30deg, rgba(0, 0, 0, 0.06) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.06) 87.5%, rgba(0, 0, 0, 0.06)),
+    linear-gradient(150deg, rgba(0, 0, 0, 0.06) 12%, transparent 12.5%, transparent 87%, rgba(0, 0, 0, 0.06) 87.5%, rgba(0, 0, 0, 0.06)),
+    /* Diamond overlay with black */
+    linear-gradient(60deg, rgba(0, 0, 0, 0.04) 25%, transparent 25.5%, transparent 75%, rgba(0, 0, 0, 0.04) 75%, rgba(0, 0, 0, 0.04)),
+    linear-gradient(60deg, rgba(0, 0, 0, 0.04) 25%, transparent 25.5%, transparent 75%, rgba(0, 0, 0, 0.04) 75%, rgba(0, 0, 0, 0.04));
+  background-size: 80px 140px;
+  background-position: 0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 1;
 }
 
 code {
@@ -27,27 +54,33 @@ code {
 
 /* Card Styles */
 .card {
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   border-radius: 1rem;
   padding: 2rem;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  position: relative;
+  z-index: 1;
 }
 
 .card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.15);
+  border-color: #D4AF37;
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .card-header {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid #D4AF37;
 }
 
 .card-title {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #1a1a1a;
+  color: #000000;
   margin: 0;
 }
 
@@ -56,7 +89,7 @@ code {
   display: inline-block;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -68,13 +101,15 @@ code {
 }
 
 .btn-gold {
-  background: linear-gradient(135deg, #D4AF37 0%, #F4D03F 100%);
-  color: #1a1a1a;
+  background: #D4AF37;
+  color: #000000;
   box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+  border: 2px solid #D4AF37;
 }
 
 .btn-gold:hover {
-  background: linear-gradient(135deg, #F4D03F 0%, #D4AF37 100%);
+  background: #000000;
+  color: #D4AF37;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
 }
@@ -104,12 +139,14 @@ code {
 }
 
 .btn-secondary {
-  background: #e5e7eb;
-  color: #1a1a1a;
+  background: #F5F5F5;
+  color: #000000;
+  border: 2px solid #000000;
 }
 
 .btn-secondary:hover {
-  background: #d1d5db;
+  background: #000000;
+  color: #FFFFFF;
   transform: translateY(-2px);
 }
 
@@ -193,7 +230,7 @@ code {
   padding: 0.25rem 0.75rem;
   border-radius: 1rem;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -201,21 +238,25 @@ code {
 .status-pending {
   background-color: #FEF3C7;
   color: #92400E;
+  border: 1px solid #F59E0B;
 }
 
 .status-confirmed {
   background-color: #D1FAE5;
   color: #065F46;
+  border: 1px solid #10B981;
 }
 
 .status-completed {
   background-color: #DBEAFE;
   color: #1E40AF;
+  border: 1px solid #3B82F6;
 }
 
 .status-cancelled {
   background-color: #FEE2E2;
   color: #991B1B;
+  border: 1px solid #EF4444;
 }
 
 /* Star Ratings */
@@ -233,16 +274,43 @@ html {
 /* Selection Color */
 ::selection {
   background-color: #D4AF37;
-  color: #1a1a1a;
+  color: #000000;
 }
 
 /* Form Input Styles */
 input, select, textarea {
   font-family: inherit;
+  background: rgba(255, 255, 255, 0.95);
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: #D4AF37 !important;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+  background: #FFFFFF;
+}
+
+/* Gold accent line */
+.gold-line {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #D4AF37, transparent);
+  margin: 2rem 0;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D4AF37;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b8941f;
 }
