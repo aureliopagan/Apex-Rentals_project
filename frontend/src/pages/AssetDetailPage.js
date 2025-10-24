@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { assetsAPI, bookingsAPI, reviewsAPI } from '../services/api';
+import axios from 'axios';
 
 const AssetDetailPage = () => {
   const { id } = useParams();
@@ -19,16 +19,21 @@ const AssetDetailPage = () => {
   });
   const [availability, setAvailability] = useState(null);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const loadAssetDetails = useCallback(async () => {
     try {
+      const token = localStorage.getItem('authToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       const [assetResponse, reviewsResponse] = await Promise.all([
-        assetsAPI.getById(id),
-        reviewsAPI.getAssetReviews(id)
+        axios.get(`http://localhost:5000/api/assets/${id}`, { headers }),
+        axios.get(`http://localhost:5000/api/reviews/asset/${id}`, { headers })
       ]);
       
+      console.log('Asset loaded:', assetResponse.data);
       setAsset(assetResponse.data.asset);
-      setReviews(reviewsResponse.data.reviews);
+      setReviews(reviewsResponse.data.reviews || []);
     } catch (error) {
       console.error('Error loading asset details:', error);
       setError('Asset not found');
@@ -38,11 +43,19 @@ const AssetDetailPage = () => {
   }, [id]);
 
   const checkAvailability = useCallback(async () => {
+    if (!bookingData.start_date || !bookingData.end_date) return;
+
     try {
-      const response = await bookingsAPI.checkAvailability(
-        id, 
-        bookingData.start_date, 
-        bookingData.end_date
+      const token = localStorage.getItem('authToken');
+      const response = await axios.get(
+        `http://localhost:5000/api/bookings/asset/${id}/availability`,
+        {
+          params: {
+            start_date: bookingData.start_date,
+            end_date: bookingData.end_date
+          },
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }
       );
       setAvailability(response.data);
     } catch (error) {
@@ -55,10 +68,8 @@ const AssetDetailPage = () => {
   }, [loadAssetDetails]);
 
   useEffect(() => {
-    if (bookingData.start_date && bookingData.end_date) {
-      checkAvailability();
-    }
-  }, [checkAvailability, bookingData.start_date, bookingData.end_date]);
+    checkAvailability();
+  }, [checkAvailability]);
 
   const handleBookingChange = (e) => {
     setBookingData({
@@ -78,7 +89,7 @@ const AssetDetailPage = () => {
     return daysDiff > 0 ? daysDiff * asset.price_per_day : 0;
   };
 
-  const handleBooking = async (e) => {
+  const handleBookingSubmit = async (e) => {
     e.preventDefault();
     
     if (!isAuthenticated) {
@@ -95,16 +106,39 @@ const AssetDetailPage = () => {
     setError('');
 
     try {
-      await bookingsAPI.create({
-        asset_id: parseInt(id),
-        start_date: bookingData.start_date + 'T10:00:00',
-        end_date: bookingData.end_date + 'T18:00:00',
-        special_requests: bookingData.special_requests
-      });
+      const token = localStorage.getItem('authToken');
+      const totalPrice = calculateTotalPrice();
 
-      navigate('/dashboard');
+      await axios.post(
+        'http://localhost:5000/api/bookings/',
+        {
+          asset_id: parseInt(id),
+          start_date: bookingData.start_date,
+          end_date: bookingData.end_date,
+          total_price: totalPrice,
+          special_requests: bookingData.special_requests
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      setSuccessMessage('Booking request submitted successfully!');
+      setBookingData({
+        start_date: '',
+        end_date: '',
+        special_requests: ''
+      });
+      
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
     } catch (error) {
-      setError(error.response?.data?.error || 'Booking failed. Please try again.');
+      console.error('Error creating booking:', error);
+      setError(error.response?.data?.error || 'Failed to create booking');
     } finally {
       setBookingLoading(false);
     }
@@ -119,14 +153,6 @@ const AssetDetailPage = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
   if (loading) {
     return (
       <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
@@ -138,9 +164,20 @@ const AssetDetailPage = () => {
   if (error && !asset) {
     return (
       <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-        <h1>{error}</h1>
-        <Link to="/assets" className="btn btn-gold" style={{ marginTop: '2rem' }}>
-          Back to Assets
+        <h2 style={{ color: '#722f37', marginBottom: '1rem' }}>{error}</h2>
+        <Link to="/assets" className="btn btn-gold">
+          Back to Browse Assets
+        </Link>
+      </div>
+    );
+  }
+
+  if (!asset) {
+    return (
+      <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+        <p>Asset not found</p>
+        <Link to="/assets" className="btn btn-gold">
+          Back to Browse Assets
         </Link>
       </div>
     );
@@ -153,7 +190,6 @@ const AssetDetailPage = () => {
       padding: '2rem 0'
     }}>
       <div className="container">
-        {/* Back Navigation */}
         <div style={{ marginBottom: '2rem' }}>
           <Link 
             to="/assets" 
@@ -168,192 +204,194 @@ const AssetDetailPage = () => {
           </Link>
         </div>
 
-        <div className="grid grid-2" style={{ gap: '3rem' }}>
+        <div className="grid grid-2" style={{ gap: '2rem', alignItems: 'start' }}>
           {/* Left Column - Asset Details */}
           <div>
-            {/* Asset Images */}
-            <div style={{ 
-              height: '400px', 
-              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-              borderRadius: '1rem',
-              marginBottom: '2rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '6rem',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              {getAssetIcon(asset?.asset_type)}
-              
-              {/* Availability Badge */}
-              <div style={{
-                position: 'absolute',
-                top: '1.5rem',
-                right: '1.5rem',
-                padding: '0.75rem 1.5rem',
-                borderRadius: '2rem',
-                fontSize: '0.9rem',
-                fontWeight: '700',
-                backgroundColor: asset?.is_available ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
-                color: 'white',
-                backdropFilter: 'blur(8px)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
+            <div className="card" style={{ marginBottom: '2rem' }}>
+              {/* Main Image */}
+              <div style={{ 
+                height: '400px', 
+                backgroundColor: '#f3f4f6',
+                borderRadius: '0.75rem',
+                overflow: 'hidden',
+                marginBottom: '1.5rem',
+                position: 'relative'
               }}>
-                {asset?.is_available ? 'Available' : 'Unavailable'}
+                {asset.images && asset.images.length > 0 ? (
+                  <img 
+                    src={`http://localhost:5000${asset.images[0].image_url}`}
+                    alt={asset.title}
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover' 
+                    }}
+                    onError={(e) => {
+                      console.error('Image failed to load:', asset.images[0].image_url);
+                      e.target.style.display = 'none';
+                      e.target.parentElement.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #9ca3af; font-size: 6rem;">${getAssetIcon(asset.asset_type)}</div>`;
+                    }}
+                  />
+                ) : (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    height: '100%',
+                    fontSize: '6rem'
+                  }}>
+                    {getAssetIcon(asset.asset_type)}
+                  </div>
+                )}
+
+                {/* Availability Badge */}
+                <div style={{
+                  position: 'absolute',
+                  top: '1.5rem',
+                  right: '1.5rem',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '2rem',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  backgroundColor: asset.is_available ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+                  color: 'white',
+                  backdropFilter: 'blur(8px)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  {asset.is_available ? 'Available' : 'Unavailable'}
+                </div>
               </div>
-            </div>
 
-            {/* Asset Information */}
-            <div className="card">
-              <div style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                  <h1 style={{ 
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
-                    color: '#1a1a1a',
-                    lineHeight: '1.2'
-                  }}>
-                    {asset?.title}
-                  </h1>
-                  <span style={{ 
-                    padding: '0.5rem 1rem',
-                    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                    color: '#b8941f',
-                    borderRadius: '2rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    border: '2px solid rgba(212, 175, 55, 0.2)'
-                  }}>
-                    {asset?.asset_type}
-                  </span>
-                </div>
-
-                <p style={{ color: '#666666', fontSize: '1.1rem', marginBottom: '1rem' }}>
-                  📍 {asset?.location}
-                </p>
-
-                {asset?.brand && asset?.model && (
-                  <p style={{ color: '#8b4513', fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem' }}>
-                    {asset.brand} {asset.model} {asset.year && `(${asset.year})`}
-                  </p>
-                )}
-
-                <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
-                  {asset?.capacity && (
-                    <div>
-                      <p style={{ color: '#666666', fontSize: '0.9rem' }}>Capacity</p>
-                      <p style={{ fontWeight: '600', fontSize: '1.1rem' }}>👥 {asset.capacity} people</p>
-                    </div>
-                  )}
-                  <div>
-                    <p style={{ color: '#666666', fontSize: '0.9rem' }}>Price</p>
-                    <p style={{ 
-                      fontSize: '1.5rem', 
-                      fontWeight: 'bold',
-                      background: 'linear-gradient(135deg, #d4af37 0%, #b8941f 100%)',
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent'
+              {/* Thumbnail Images */}
+              {asset.images && asset.images.length > 1 && (
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                  gap: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {asset.images.slice(1).map((image, index) => (
+                    <div key={index} style={{ 
+                      height: '100px',
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: '0.5rem',
+                      overflow: 'hidden'
                     }}>
-                      ${asset?.price_per_day?.toLocaleString()}/day
-                    </p>
-                  </div>
+                      <img 
+                        src={`http://localhost:5000${image.image_url}`}
+                        alt={`${asset.title} ${index + 2}`}
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover',
+                          cursor: 'pointer'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
+              )}
 
-                {/* Description */}
-                {asset?.description && (
-                  <div style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ color: '#722f37', marginBottom: '1rem', fontSize: '1.2rem' }}>
-                      Description
-                    </h3>
-                    <p style={{ lineHeight: '1.6', color: '#666666' }}>
-                      {asset.description}
+              {/* Asset Info */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <h1 style={{ 
+                  fontSize: '2rem', 
+                  fontWeight: 'bold',
+                  color: '#1a1a1a',
+                  flex: 1
+                }}>
+                  {asset.title}
+                </h1>
+                <span style={{ 
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                  color: '#b8941f',
+                  borderRadius: '1rem',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  marginLeft: '1rem'
+                }}>
+                  {asset.asset_type}
+                </span>
+              </div>
+
+              <p style={{ color: '#666666', fontSize: '1.1rem', marginBottom: '1rem' }}>
+                📍 {asset.location}
+              </p>
+
+              {asset.brand && asset.model && (
+                <p style={{ color: '#8b4513', marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: '500' }}>
+                  {asset.brand} {asset.model} {asset.year && `(${asset.year})`}
+                </p>
+              )}
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '1rem',
+                padding: '1.5rem',
+                backgroundColor: '#f9fafb',
+                borderRadius: '0.75rem',
+                marginBottom: '1.5rem'
+              }}>
+                {asset.capacity && (
+                  <div>
+                    <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                      Capacity
+                    </p>
+                    <p style={{ fontWeight: '600', fontSize: '1.1rem', color: '#1a1a1a' }}>
+                      👥 {asset.capacity} people
                     </p>
                   </div>
                 )}
-
-                {/* Reviews Section */}
                 <div>
-                  <h3 style={{ color: '#722f37', marginBottom: '1rem', fontSize: '1.2rem' }}>
-                    Reviews ({reviews.length})
-                  </h3>
-                  
-                  {reviews.length > 0 ? (
-                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                      {reviews.slice(0, 3).map(review => (
-                        <div key={review.id} style={{ 
-                          padding: '1rem',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '0.5rem',
-                          marginBottom: '1rem',
-                          backgroundColor: '#fefefe'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <span style={{ fontWeight: '600' }}>
-                              {review.reviewer?.first_name} {review.reviewer?.last_name}
-                            </span>
-                            <div className="stars">
-                              {'⭐'.repeat(review.rating)}
-                            </div>
-                          </div>
-                          <p style={{ color: '#666666', fontSize: '0.9rem' }}>
-                            {review.comment}
-                          </p>
-                          <p style={{ color: '#999999', fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                            {formatDate(review.created_at)}
-                          </p>
-                        </div>
-                      ))}
-                      {reviews.length > 3 && (
-                        <p style={{ textAlign: 'center', color: '#d4af37', fontSize: '0.9rem' }}>
-                          +{reviews.length - 3} more reviews
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p style={{ color: '#666666', fontStyle: 'italic' }}>
-                      No reviews yet. Be the first to book and review!
-                    </p>
-                  )}
+                  <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                    Price
+                  </p>
+                  <p style={{ 
+                    fontWeight: 'bold',
+                    fontSize: '1.5rem',
+                    color: '#d4af37'
+                  }}>
+                    ${asset.price_per_day}/day
+                  </p>
                 </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h3 style={{ color: '#722f37', marginBottom: '1rem', fontSize: '1.25rem' }}>
+                  Description
+                </h3>
+                <p style={{ color: '#666666', lineHeight: '1.6' }}>
+                  {asset.description || 'No description available.'}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Right Column - Booking Form */}
           <div>
-            <div className="card" style={{ position: 'sticky', top: '2rem' }}>
+            <div className="card">
               <h2 style={{ 
-                fontSize: '1.5rem',
-                fontWeight: 'bold',
+                fontSize: '1.75rem',
                 color: '#722f37',
-                marginBottom: '1.5rem'
+                marginBottom: '1rem'
               }}>
                 Book This Asset
               </h2>
 
-              {error && (
-                <div style={{ 
-                  backgroundColor: '#fee2e2', 
-                  color: '#991b1b', 
-                  padding: '1rem', 
-                  borderRadius: '0.5rem',
-                  marginBottom: '1.5rem',
-                  border: '1px solid #fecaca'
-                }}>
-                  {error}
-                </div>
-              )}
-
               {!isAuthenticated ? (
                 <div style={{ textAlign: 'center', padding: '2rem' }}>
-                  <p style={{ marginBottom: '1rem', color: '#666666' }}>
-                    Please log in to book this asset
+                  <p style={{ color: '#666666', marginBottom: '1.5rem' }}>
+                    Please log in to make a booking
                   </p>
-                  <Link to="/login" className="btn btn-gold">
+                  <Link to="/login" className="btn btn-gold" style={{ width: '100%' }}>
                     Login to Book
                   </Link>
                 </div>
@@ -363,114 +401,182 @@ const AssetDetailPage = () => {
                     Only clients can make bookings
                   </p>
                 </div>
-              ) : !asset?.is_available ? (
+              ) : !asset.is_available ? (
                 <div style={{ textAlign: 'center', padding: '2rem' }}>
                   <p style={{ color: '#991b1b', fontWeight: '600' }}>
                     This asset is currently unavailable
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleBooking}>
-                  <div className="form-group">
-                    <label htmlFor="start_date" className="form-label">
-                      Check-in Date
+                <form onSubmit={handleBookingSubmit}>
+                  {successMessage && (
+                    <div style={{ 
+                      backgroundColor: '#d1fae5', 
+                      color: '#065f46', 
+                      padding: '1rem', 
+                      borderRadius: '0.5rem',
+                      marginBottom: '1.5rem',
+                      border: '1px solid #6ee7b7'
+                    }}>
+                      {successMessage}
+                    </div>
+                  )}
+
+                  {error && (
+                    <div style={{ 
+                      backgroundColor: '#fee2e2', 
+                      color: '#991b1b', 
+                      padding: '1rem', 
+                      borderRadius: '0.5rem',
+                      marginBottom: '1.5rem',
+                      border: '1px solid #fca5a5'
+                    }}>
+                      {error}
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                      Start Date *
                     </label>
                     <input
                       type="date"
-                      id="start_date"
                       name="start_date"
-                      className="form-input"
                       value={bookingData.start_date}
                       onChange={handleBookingChange}
-                      min={new Date().toISOString().split('T')[0]}
                       required
+                      min={new Date().toISOString().split('T')[0]}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        fontSize: '1rem'
+                      }}
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="end_date" className="form-label">
-                      Check-out Date
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                      End Date *
                     </label>
                     <input
                       type="date"
-                      id="end_date"
                       name="end_date"
-                      className="form-input"
                       value={bookingData.end_date}
                       onChange={handleBookingChange}
-                      min={bookingData.start_date || new Date().toISOString().split('T')[0]}
                       required
+                      min={bookingData.start_date || new Date().toISOString().split('T')[0]}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        fontSize: '1rem'
+                      }}
                     />
                   </div>
 
-                  {/* Availability Check */}
                   {availability && (
                     <div style={{ 
                       padding: '1rem',
+                      backgroundColor: availability.available ? '#d1fae5' : '#fee2e2',
+                      color: availability.available ? '#065f46' : '#991b1b',
                       borderRadius: '0.5rem',
-                      marginBottom: '1rem',
-                      backgroundColor: availability.is_available ? '#d1fae5' : '#fee2e2',
-                      color: availability.is_available ? '#065f46' : '#991b1b',
-                      border: `1px solid ${availability.is_available ? '#a7f3d0' : '#fecaca'}`
+                      marginBottom: '1.5rem',
+                      border: `1px solid ${availability.available ? '#6ee7b7' : '#fca5a5'}`
                     }}>
-                      {availability.is_available ? (
-                        <p>✅ Available for selected dates</p>
-                      ) : (
-                        <p>❌ Not available for selected dates</p>
-                      )}
+                      {availability.available ? '✓ Available for selected dates' : '✗ Not available for selected dates'}
                     </div>
                   )}
 
-                  {/* Price Calculation */}
-                  {calculateTotalPrice() > 0 && (
+                  {bookingData.start_date && bookingData.end_date && calculateTotalPrice() > 0 && (
                     <div style={{ 
-                      padding: '1rem',
-                      backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                      borderRadius: '0.5rem',
-                      marginBottom: '1rem',
-                      border: '1px solid rgba(212, 175, 55, 0.2)'
+                      padding: '1.5rem',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '0.75rem',
+                      marginBottom: '1.5rem'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <span>Daily Rate:</span>
-                        <span>${asset?.price_per_day?.toLocaleString()}</span>
+                        <span style={{ color: '#666666' }}>Duration:</span>
+                        <span style={{ fontWeight: '600' }}>
+                          {Math.ceil((new Date(bookingData.end_date) - new Date(bookingData.start_date)) / (1000 * 3600 * 24))} days
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <span>Duration:</span>
-                        <span>{Math.ceil((new Date(bookingData.end_date) - new Date(bookingData.start_date)) / (1000 * 60 * 60 * 24))} days</span>
-                      </div>
-                      <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid rgba(212, 175, 55, 0.3)' }} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                        <span>Total:</span>
-                        <span style={{ color: '#d4af37' }}>${calculateTotalPrice().toLocaleString()}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '2px solid #e5e7eb' }}>
+                        <span style={{ fontSize: '1.1rem', fontWeight: '600' }}>Total:</span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#d4af37' }}>
+                          ${calculateTotalPrice().toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   )}
 
-                  <div className="form-group">
-                    <label htmlFor="special_requests" className="form-label">
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
                       Special Requests (Optional)
                     </label>
                     <textarea
-                      id="special_requests"
                       name="special_requests"
-                      className="form-textarea"
                       value={bookingData.special_requests}
                       onChange={handleBookingChange}
-                      placeholder="Any special requests or requirements..."
+                      rows="4"
+                      placeholder="Any special requirements or requests..."
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        fontSize: '1rem',
+                        fontFamily: 'inherit'
+                      }}
                     />
                   </div>
 
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
+                    disabled={bookingLoading || !availability?.available}
                     className="btn btn-gold"
-                    style={{ width: '100%' }}
-                    disabled={bookingLoading || !availability?.is_available}
+                    style={{ 
+                      width: '100%',
+                      padding: '1rem',
+                      fontSize: '1.1rem',
+                      opacity: (bookingLoading || !availability?.available) ? 0.6 : 1,
+                      cursor: (bookingLoading || !availability?.available) ? 'not-allowed' : 'pointer'
+                    }}
                   >
-                    {bookingLoading ? 'Processing...' : `Book Now - $${calculateTotalPrice().toLocaleString()}`}
+                    {bookingLoading ? 'Processing...' : 'Request Booking'}
                   </button>
                 </form>
               )}
             </div>
+
+            {/* Reviews Section */}
+            {reviews.length > 0 && (
+              <div className="card" style={{ marginTop: '2rem' }}>
+                <h3 style={{ color: '#722f37', marginBottom: '1rem', fontSize: '1.25rem' }}>
+                  Reviews ({reviews.length})
+                </h3>
+                {reviews.map((review, index) => (
+                  <div key={index} style={{ 
+                    padding: '1rem',
+                    borderBottom: index < reviews.length - 1 ? '1px solid #e5e7eb' : 'none'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: '600' }}>
+                        {review.reviewer_name}
+                      </span>
+                      <span style={{ color: '#d4af37' }}>
+                        {'⭐'.repeat(review.rating)}
+                      </span>
+                    </div>
+                    <p style={{ color: '#666666' }}>
+                      {review.comment}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

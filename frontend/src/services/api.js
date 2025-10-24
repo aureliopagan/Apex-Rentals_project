@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-// Base URL for your backend
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -11,7 +9,6 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
@@ -25,14 +22,12 @@ api.interceptors.request.use(
   }
 );
 
-// Auth API calls
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
   getProfile: () => api.get('/auth/profile'),
 };
 
-// Assets API calls
 export const assetsAPI = {
   getAll: (filters = {}) => {
     const params = new URLSearchParams();
@@ -46,10 +41,10 @@ export const assetsAPI = {
   getById: (id) => api.get(`/assets/${id}`),
   create: (assetData) => api.post('/assets', assetData),
   update: (id, assetData) => api.put(`/assets/${id}`, assetData),
+  delete: (id) => api.delete(`/assets/${id}`),
   getMyAssets: () => api.get('/assets/my-assets'),
 };
 
-// Bookings API calls
 export const bookingsAPI = {
   create: (bookingData) => api.post('/bookings', bookingData),
   getMyBookings: () => api.get('/bookings'),
@@ -59,7 +54,6 @@ export const bookingsAPI = {
     api.get(`/bookings/asset/${assetId}/availability?start_date=${startDate}&end_date=${endDate}`),
 };
 
-// Reviews API calls
 export const reviewsAPI = {
   create: (reviewData) => api.post('/reviews', reviewData),
   getAssetReviews: (assetId) => api.get(`/reviews/asset/${assetId}`),

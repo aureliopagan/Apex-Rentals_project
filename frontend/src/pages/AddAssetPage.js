@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { assetsAPI } from '../services/api';
+import axios from 'axios';
 
 const AddAssetPage = () => {
-  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [images, setImages] = useState([]);
+  const [previewUrls, setPreviewUrls] = useState([]);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -13,57 +17,46 @@ const AddAssetPage = () => {
     asset_type: 'car',
     brand: '',
     model: '',
-    year: new Date().getFullYear(),
+    year: '',
     capacity: '',
     price_per_day: '',
     location: '',
     latitude: '',
     longitude: ''
   });
-  
-  const [images, setImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     
-    if (files.length + images.length > 5) {
+    if (files.length > 5) {
       setError('Maximum 5 images allowed');
       return;
     }
 
+    setImages(files);
+    
     // Create preview URLs
-    const newPreviews = files.map(file => ({
-      file,
-      url: URL.createObjectURL(file),
-      id: Math.random().toString(36).substr(2, 9)
-    }));
-
-    setImages(prev => [...prev, ...files]);
-    setImagePreviews(prev => [...prev, ...newPreviews]);
+    const urls = files.map(file => URL.createObjectURL(file));
+    setPreviewUrls(urls);
     setError('');
   };
 
-  const removeImage = (indexToRemove) => {
-    setImages(prev => prev.filter((_, index) => index !== indexToRemove));
-    setImagePreviews(prev => {
-      const newPreviews = prev.filter((_, index) => index !== indexToRemove);
-      // Clean up URL to prevent memory leaks
-      if (prev[indexToRemove]) {
-        URL.revokeObjectURL(prev[indexToRemove].url);
-      }
-      return newPreviews;
-    });
+  const removeImage = (index) => {
+    const newImages = images.filter((_, i) => i !== index);
+    const newPreviews = previewUrls.filter((_, i) => i !== index);
+    
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(previewUrls[index]);
+    
+    setImages(newImages);
+    setPreviewUrls(newPreviews);
   };
 
   const handleSubmit = async (e) => {
@@ -72,58 +65,55 @@ const AddAssetPage = () => {
     setError('');
 
     try {
-      // Create FormData to handle both text and file data
-      const formDataToSend = new FormData();
+      // Create FormData object for multipart/form-data
+      const submitData = new FormData();
       
-      // Add text fields
-      formDataToSend.append('title', formData.title.trim());
-      formDataToSend.append('description', formData.description.trim());
-      formDataToSend.append('asset_type', formData.asset_type);
-      formDataToSend.append('price_per_day', formData.price_per_day);
-      formDataToSend.append('location', formData.location.trim());
-      
-      // Add optional fields
-      if (formData.brand.trim()) formDataToSend.append('brand', formData.brand.trim());
-      if (formData.model.trim()) formDataToSend.append('model', formData.model.trim());
-      if (formData.year) formDataToSend.append('year', formData.year);
-      if (formData.capacity) formDataToSend.append('capacity', formData.capacity);
-      if (formData.latitude) formDataToSend.append('latitude', formData.latitude);
-      if (formData.longitude) formDataToSend.append('longitude', formData.longitude);
-      
-      // Add image files
-      images.forEach((image, index) => {
-        formDataToSend.append('images', image);
+      // Append all form fields
+      Object.keys(formData).forEach(key => {
+        if (formData[key]) {
+          submitData.append(key, formData[key]);
+        }
       });
 
-      console.log('Submitting form data with', images.length, 'images');
-
-      // Send FormData instead of JSON
-      const response = await fetch('http://localhost:5000/api/assets/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          // Don't set Content-Type header - let browser set it for FormData
-        },
-        body: formDataToSend
+      // Append images
+      images.forEach((image) => {
+        submitData.append('images', image);
       });
 
-      const responseData = await response.json();
+      console.log('Submitting asset with images:', images.length);
 
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Failed to create asset');
-      }
+      // Get token
+      const token = localStorage.getItem('authToken');
+      
+      // Send request with FormData
+      const response = await axios.post(
+        'http://localhost:5000/api/assets/',
+        submitData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
 
-      console.log('Asset created successfully:', responseData);
-      navigate('/dashboard');
+      console.log('Asset created:', response.data);
+      
+      // Clean up preview URLs
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      
+      // Redirect to manage assets or dashboard
+      navigate('/assets/manage');
+      
     } catch (error) {
-      console.error('Asset creation error:', error);
-      setError(error.message || 'Failed to create asset. Please check all required fields.');
+      console.error('Error creating asset:', error);
+      console.error('Error response:', error.response);
+      setError(error.response?.data?.error || 'Failed to create asset. Please check all required fields.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Check if user is authorized
   if (!isAuthenticated) {
     return (
       <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
@@ -149,7 +139,6 @@ const AddAssetPage = () => {
       padding: '2rem 0'
     }}>
       <div className="container" style={{ maxWidth: '800px' }}>
-        {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
           <Link 
             to="/dashboard" 
@@ -189,7 +178,7 @@ const AddAssetPage = () => {
               padding: '1rem', 
               borderRadius: '0.5rem',
               marginBottom: '2rem',
-              border: '1px solid #fecaca'
+              border: '1px solid #fca5a5'
             }}>
               {error}
             </div>
@@ -197,305 +186,396 @@ const AddAssetPage = () => {
 
           <form onSubmit={handleSubmit}>
             {/* Basic Information */}
-            <div style={{ marginBottom: '3rem' }}>
-              <h2 style={{ 
-                color: '#722f37', 
-                fontSize: '1.5rem', 
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #d4af37',
-                paddingBottom: '0.5rem'
-              }}>
-                Basic Information
-              </h2>
-
-              <div className="form-group">
-                <label htmlFor="title" className="form-label">Asset Title *</label>
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ color: '#722f37', marginBottom: '1rem' }}>Basic Information</h3>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                  Asset Title *
+                </label>
                 <input
                   type="text"
-                  id="title"
                   name="title"
-                  className="form-input"
                   value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="e.g., BMW M4 CS - Track-Ready Beast"
+                  onChange={handleChange}
                   required
+                  placeholder="e.g., Luxury Yacht Paradise"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    fontSize: '1rem'
+                  }}
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="description" className="form-label">Description *</label>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                  Description
+                </label>
                 <textarea
-                  id="description"
                   name="description"
-                  className="form-textarea"
                   value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Describe your luxury asset, its features, and what makes it special..."
-                  required
+                  onChange={handleChange}
                   rows="4"
+                  placeholder="Describe your luxury asset..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    fontSize: '1rem',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                  Asset Type *
+                </label>
+                <select
+                  name="asset_type"
+                  value={formData.asset_type}
+                  onChange={handleChange}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    fontSize: '1rem'
+                  }}
+                >
+                  <option value="yacht">🛥️ Yacht</option>
+                  <option value="car">🚗 Car</option>
+                  <option value="jet">✈️ Jet</option>
+                  <option value="other">🏖️ Other</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Asset Details */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ color: '#722f37', marginBottom: '1rem' }}>Asset Details</h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Brand
+                  </label>
+                  <input
+                    type="text"
+                    name="brand"
+                    value={formData.brand}
+                    onChange={handleChange}
+                    placeholder="e.g., BMW"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Model
+                  </label>
+                  <input
+                    type="text"
+                    name="model"
+                    value={formData.model}
+                    onChange={handleChange}
+                    placeholder="e.g., M4 CS"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Year
+                  </label>
+                  <input
+                    type="number"
+                    name="year"
+                    value={formData.year}
+                    onChange={handleChange}
+                    placeholder="e.g., 2024"
+                    min="1900"
+                    max="2030"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Capacity (People)
+                  </label>
+                  <input
+                    type="number"
+                    name="capacity"
+                    value={formData.capacity}
+                    onChange={handleChange}
+                    placeholder="e.g., 4"
+                    min="1"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      fontSize: '1rem'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing & Location */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ color: '#722f37', marginBottom: '1rem' }}>Pricing & Location</h3>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                  Price per Day * ($)
+                </label>
+                <input
+                  type="number"
+                  name="price_per_day"
+                  value={formData.price_per_day}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., 500"
+                  min="1"
+                  step="0.01"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                  Location *
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g., Miami, Florida"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    fontSize: '1rem'
+                  }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label htmlFor="asset_type" className="form-label">Asset Type *</label>
-                  <select
-                    id="asset_type"
-                    name="asset_type"
-                    className="form-select"
-                    value={formData.asset_type}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="car">🚗 Luxury Car</option>
-                    <option value="yacht">🛥️ Yacht</option>
-                    <option value="jet">✈️ Private Jet</option>
-                    <option value="other">🏖️ Other</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="capacity" className="form-label">Capacity (People)</label>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Latitude (Optional)
+                  </label>
                   <input
                     type="number"
-                    id="capacity"
-                    name="capacity"
-                    className="form-input"
-                    value={formData.capacity}
-                    onChange={handleInputChange}
-                    placeholder="4"
-                    min="1"
-                    max="50"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Vehicle Details */}
-            <div style={{ marginBottom: '3rem' }}>
-              <h2 style={{ 
-                color: '#722f37', 
-                fontSize: '1.5rem', 
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #d4af37',
-                paddingBottom: '0.5rem'
-              }}>
-                Vehicle Details
-              </h2>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label htmlFor="brand" className="form-label">Brand</label>
-                  <input
-                    type="text"
-                    id="brand"
-                    name="brand"
-                    className="form-input"
-                    value={formData.brand}
-                    onChange={handleInputChange}
-                    placeholder="BMW"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="model" className="form-label">Model</label>
-                  <input
-                    type="text"
-                    id="model"
-                    name="model"
-                    className="form-input"
-                    value={formData.model}
-                    onChange={handleInputChange}
-                    placeholder="M4 CS"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="year" className="form-label">Year</label>
-                  <input
-                    type="number"
-                    id="year"
-                    name="year"
-                    className="form-input"
-                    value={formData.year}
-                    onChange={handleInputChange}
-                    min="1980"
-                    max={new Date().getFullYear() + 1}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Location & Pricing */}
-            <div style={{ marginBottom: '3rem' }}>
-              <h2 style={{ 
-                color: '#722f37', 
-                fontSize: '1.5rem', 
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #d4af37',
-                paddingBottom: '0.5rem'
-              }}>
-                Location & Pricing
-              </h2>
-
-              <div className="form-group">
-                <label htmlFor="location" className="form-label">Location *</label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  className="form-input"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  placeholder="Los Angeles, CA"
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label htmlFor="price_per_day" className="form-label">Daily Rate ($) *</label>
-                  <input
-                    type="number"
-                    id="price_per_day"
-                    name="price_per_day"
-                    className="form-input"
-                    value={formData.price_per_day}
-                    onChange={handleInputChange}
-                    placeholder="850"
-                    min="1"
-                    step="0.01"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="latitude" className="form-label">Latitude (Optional)</label>
-                  <input
-                    type="number"
-                    id="latitude"
                     name="latitude"
-                    className="form-input"
                     value={formData.latitude}
-                    onChange={handleInputChange}
-                    placeholder="34.0522"
+                    onChange={handleChange}
+                    placeholder="e.g., 25.7617"
                     step="any"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      fontSize: '1rem'
+                    }}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="longitude" className="form-label">Longitude (Optional)</label>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    Longitude (Optional)
+                  </label>
                   <input
                     type="number"
-                    id="longitude"
                     name="longitude"
-                    className="form-input"
                     value={formData.longitude}
-                    onChange={handleInputChange}
-                    placeholder="-118.2437"
+                    onChange={handleChange}
+                    placeholder="e.g., -80.1918"
                     step="any"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      fontSize: '1rem'
+                    }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Images */}
-            <div style={{ marginBottom: '3rem' }}>
-              <h2 style={{ 
-                color: '#722f37', 
-                fontSize: '1.5rem', 
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #d4af37',
-                paddingBottom: '0.5rem'
-              }}>
-                Images
-              </h2>
-
-              <div className="form-group">
-                <label htmlFor="images" className="form-label">Upload Images (Max 5)</label>
+            {/* Image Upload */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ color: '#722f37', marginBottom: '1rem' }}>Asset Images</h3>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <label 
+                  htmlFor="images"
+                  style={{ 
+                    display: 'inline-block',
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#d4af37',
+                    color: 'white',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    transition: 'background-color 0.3s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#b8941f'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#d4af37'}
+                >
+                  📷 Choose Images (Max 5)
+                </label>
                 <input
-                  type="file"
                   id="images"
-                  name="images"
-                  className="form-input"
-                  multiple
+                  type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleImageChange}
-                  style={{ padding: '0.75rem' }}
+                  style={{ display: 'none' }}
                 />
-                <p style={{ color: '#666666', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                  Supported formats: JPG, PNG, GIF. Max 5MB per image.
-                </p>
               </div>
 
-              {/* Image Previews */}
-              {imagePreviews.length > 0 && (
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
-                  gap: '1rem',
-                  marginTop: '1rem'
-                }}>
-                  {imagePreviews.map((preview, index) => (
-                    <div key={preview.id} style={{ position: 'relative' }}>
-                      <img
-                        src={preview.url}
-                        alt={`Preview ${index + 1}`}
-                        style={{
-                          width: '100%',
-                          height: '120px',
-                          objectFit: 'cover',
-                          borderRadius: '0.5rem',
-                          border: '2px solid #e5e7eb'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        style={{
-                          position: 'absolute',
-                          top: '0.5rem',
-                          right: '0.5rem',
-                          backgroundColor: 'rgba(239, 68, 68, 0.9)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: '24px',
-                          height: '24px',
-                          cursor: 'pointer',
-                          fontSize: '0.75rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+              {previewUrls.length > 0 && (
+                <div>
+                  <p style={{ marginBottom: '1rem', color: '#666666' }}>
+                    {images.length} image{images.length !== 1 ? 's' : ''} selected
+                  </p>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                    gap: '1rem'
+                  }}>
+                    {previewUrls.map((url, index) => (
+                      <div key={index} style={{ position: 'relative' }}>
+                        <img 
+                          src={url} 
+                          alt={`Preview ${index + 1}`}
+                          style={{ 
+                            width: '100%', 
+                            height: '150px', 
+                            objectFit: 'cover',
+                            borderRadius: '0.5rem',
+                            border: '2px solid #d1d5db'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          style={{
+                            position: 'absolute',
+                            top: '0.5rem',
+                            right: '0.5rem',
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '30px',
+                            height: '30px',
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          ×
+                        </button>
+                        {index === 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '0.5rem',
+                            left: '0.5rem',
+                            backgroundColor: '#d4af37',
+                            color: 'white',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '0.25rem',
+                            fontSize: '0.75rem',
+                            fontWeight: '600'
+                          }}>
+                            Primary
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             <div style={{ 
               display: 'flex', 
-              gap: '1rem', 
-              justifyContent: 'flex-end',
+              gap: '1rem',
               paddingTop: '2rem',
-              borderTop: '1px solid #e5e7eb'
+              borderTop: '2px solid #e5e7eb'
             }}>
-              <Link to="/dashboard" className="btn btn-secondary">
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-gold"
+                style={{ 
+                  flex: 1,
+                  padding: '1rem',
+                  fontSize: '1.1rem',
+                  opacity: loading ? 0.6 : 1,
+                  cursor: loading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? 'Creating Asset...' : '✨ List Asset'}
+              </button>
+              
+              <Link
+                to="/dashboard"
+                className="btn btn-secondary"
+                style={{ 
+                  flex: 1,
+                  padding: '1rem',
+                  fontSize: '1.1rem',
+                  textAlign: 'center',
+                  textDecoration: 'none'
+                }}
+              >
                 Cancel
               </Link>
-              <button 
-                type="submit" 
-                className="btn btn-gold"
-                disabled={loading}
-                style={{ minWidth: '150px' }}
-              >
-                {loading ? 'Creating...' : 'Create Asset'}
-              </button>
             </div>
           </form>
         </div>

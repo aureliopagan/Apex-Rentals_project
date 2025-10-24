@@ -11,27 +11,33 @@ const DashboardPage = () => {
 
   const loadDashboardData = useCallback(async () => {
     try {
+      console.log('Loading dashboard data for user:', user);
+      
       // Load bookings for all users
       const bookingsResponse = await bookingsAPI.getMyBookings();
       setBookings(bookingsResponse.data);
+      console.log('Bookings loaded:', bookingsResponse.data);
 
       // Load assets if user is an owner
       if (user?.user_type === 'owner') {
+        console.log('User is owner, loading assets...');
         const assetsResponse = await assetsAPI.getMyAssets();
-        setAssets(assetsResponse.data.assets);
+        console.log('Assets response:', assetsResponse.data);
+        setAssets(assetsResponse.data.assets || []);
+        console.log('Assets set:', assetsResponse.data.assets);
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
-  }, [user?.user_type]);
+  }, [user?.user_type, user]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       loadDashboardData();
     }
-  }, [isAuthenticated, loadDashboardData]);
+  }, [isAuthenticated, user, loadDashboardData]);
 
   const getStatusBadge = (status) => {
     return (
@@ -75,7 +81,6 @@ const DashboardPage = () => {
       padding: '2rem 0'
     }}>
       <div className="container">
-        {/* Header */}
         <div style={{ marginBottom: '3rem' }}>
           <h1 style={{ 
             fontSize: '2.5rem', 
@@ -94,7 +99,6 @@ const DashboardPage = () => {
         </div>
 
         <div className="grid grid-2">
-          {/* Left Column - Bookings */}
           <div>
             <div className="card">
               <div className="card-header">
@@ -104,7 +108,6 @@ const DashboardPage = () => {
               </div>
 
               {user?.user_type === 'client' ? (
-                // Client View - Bookings Made
                 <div>
                   <h3 style={{ color: '#722f37', marginBottom: '1rem', fontSize: '1.1rem' }}>
                     My Rental History ({bookings.bookings_made?.length || 0})
@@ -148,7 +151,6 @@ const DashboardPage = () => {
                   )}
                 </div>
               ) : (
-                // Owner View - Bookings Received
                 <div>
                   <h3 style={{ color: '#722f37', marginBottom: '1rem', fontSize: '1.1rem' }}>
                     Incoming Requests ({bookings.bookings_received?.length || 0})
@@ -171,7 +173,7 @@ const DashboardPage = () => {
                             {getStatusBadge(booking.status)}
                           </div>
                           <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                            👤 {booking.client?.first_name} {booking.client?.last_name}
+                            👤 Client: {booking.client?.first_name} {booking.client?.last_name}
                           </p>
                           <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
                             📅 {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
@@ -179,11 +181,6 @@ const DashboardPage = () => {
                           <p style={{ color: '#d4af37', fontWeight: '600' }}>
                             💰 ${booking.total_price}
                           </p>
-                          {booking.special_requests && (
-                            <p style={{ color: '#8b4513', fontSize: '0.85rem', fontStyle: 'italic', marginTop: '0.5rem' }}>
-                              Note: {booking.special_requests}
-                            </p>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -200,15 +197,13 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* Right Column - Quick Actions & Assets (for owners) */}
           <div>
-            {/* Quick Actions */}
             <div className="card" style={{ marginBottom: '2rem' }}>
               <div className="card-header">
                 <h2 className="card-title">Quick Actions</h2>
               </div>
               
-              <div className="grid" style={{ gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {user?.user_type === 'client' ? (
                   <>
                     <Link to="/assets" className="btn btn-gold">
@@ -237,7 +232,6 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            {/* Assets (Owner only) */}
             {user?.user_type === 'owner' && (
               <div className="card">
                 <div className="card-header">
@@ -294,7 +288,6 @@ const DashboardPage = () => {
               </div>
             )}
 
-            {/* Profile Summary */}
             <div className="card" style={{ marginTop: '2rem' }}>
               <div className="card-header">
                 <h2 className="card-title">Profile Summary</h2>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Import components
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -10,8 +9,9 @@ import DashboardPage from './pages/DashboardPage';
 import AssetsPage from './pages/AssetsPage';
 import AssetDetailPage from './pages/AssetDetailPage';
 import AddAssetPage from './pages/AddAssetPage';
+import ManageAssetsPage from './pages/ManageAssetsPage';
+import EarningsPage from './pages/EarningsPage';
 
-// Context providers
 import { AuthProvider } from './context/AuthContext';
 
 function App() {
@@ -29,6 +29,8 @@ function App() {
               <Route path="/assets" element={<AssetsPage />} />
               <Route path="/assets/:id" element={<AssetDetailPage />} />
               <Route path="/assets/create" element={<AddAssetPage />} />
+              <Route path="/assets/manage" element={<ManageAssetsPage />} />
+              <Route path="/earnings" element={<EarningsPage />} />
             </Routes>
           </main>
         </div>

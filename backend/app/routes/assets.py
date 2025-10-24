@@ -8,20 +8,17 @@ import os
 
 assets_bp = Blueprint('assets', __name__)
 
-# Configure upload folder
 UPLOAD_FOLDER = 'uploads/assets'
 
 @assets_bp.route('/', methods=['GET'])
 def get_assets():
     """Get all available assets with optional filtering"""
     try:
-        # Get query parameters for filtering
         asset_type = request.args.get('type')
         location = request.args.get('location')
         min_price = request.args.get('min_price', type=float)
         max_price = request.args.get('max_price', type=float)
         
-        # Build query with eager loading of images
         query = Asset.query.options(db.joinedload(Asset.images)).filter_by(is_available=True)
         
         if asset_type:
@@ -41,6 +38,10 @@ def get_assets():
             query = query.filter(Asset.price_per_day <= max_price)
         
         assets = query.all()
+        
+        print(f"[GET ASSETS] Found {len(assets)} available assets")
+        for asset in assets:
+            print(f"  - Asset {asset.id}: {asset.title} (available: {asset.is_available})")
         
         return jsonify({
             'assets': [asset.to_dict() for asset in assets],
@@ -73,19 +74,22 @@ def create_asset():
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         
-        # Check if user can create assets (must be owner)
         if user.user_type.value != 'owner':
             return jsonify({'error': 'Only owners can create assets'}), 403
         
-        # Handle both form data and JSON
+        # Check if request has files
         if request.content_type and 'multipart/form-data' in request.content_type:
-            # Form data with files
             data = request.form.to_dict()
             files = request.files.getlist('images')
+            print(f"[CREATE ASSET] Received {len(files)} image files")
+            for idx, f in enumerate(files):
+                print(f"[CREATE ASSET] File {idx}: {f.filename}, content_type: {f.content_type}")
         else:
-            # JSON data (no files)
             data = request.get_json()
             files = []
+            print(f"[CREATE ASSET] No files in request")
+        
+        print(f"[CREATE ASSET] Received data: {data}")
         
         # Validate required fields
         required_fields = ['title', 'asset_type', 'price_per_day', 'location']
@@ -99,7 +103,7 @@ def create_asset():
         except ValueError:
             return jsonify({'error': 'Invalid asset type'}), 400
         
-        # Create new asset
+        # Create asset
         asset = Asset(
             owner_id=user_id,
             title=data['title'],
@@ -112,28 +116,41 @@ def create_asset():
             price_per_day=float(data['price_per_day']),
             location=data['location'],
             latitude=float(data['latitude']) if data.get('latitude') else None,
-            longitude=float(data['longitude']) if data.get('longitude') else None
+            longitude=float(data['longitude']) if data.get('longitude') else None,
+            is_available=True
         )
         
         db.session.add(asset)
-        db.session.flush()  # Get the asset ID
+        db.session.flush()
+        
+        print(f"[CREATE ASSET] Created asset {asset.id} with is_available={asset.is_available}")
         
         # Handle image uploads
         uploaded_images = []
         for i, file in enumerate(files):
             if file and file.filename:
+                print(f"[CREATE ASSET] Processing file {i}: {file.filename}")
                 filename = save_uploaded_file(file, UPLOAD_FOLDER)
                 if filename:
-                    # Create asset image record
+                    print(f"[CREATE ASSET] File saved as: {filename}")
                     asset_image = AssetImage(
                         asset_id=asset.id,
                         image_url=f'/uploads/assets/{filename}',
-                        is_primary=(i == 0)  # First image is primary
+                        is_primary=(i == 0)
                     )
                     db.session.add(asset_image)
                     uploaded_images.append(filename)
+                    print(f"[CREATE ASSET] Added image record: /uploads/assets/{filename}")
+                else:
+                    print(f"[CREATE ASSET] Failed to save file: {file.filename}")
         
         db.session.commit()
+        
+        print(f"[CREATE ASSET] Successfully committed asset {asset.id} with {len(uploaded_images)} images")
+        
+        # Verify the asset was saved with images
+        saved_asset = Asset.query.get(asset.id)
+        print(f"[CREATE ASSET] Verification - Asset {saved_asset.id}: is_available={saved_asset.is_available}, images={len(saved_asset.images)}")
         
         return jsonify({
             'message': 'Asset created successfully',
@@ -143,7 +160,9 @@ def create_asset():
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating asset: {e}")  # Debug log
+        print(f"[CREATE ASSET] Error creating asset: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @assets_bp.route('/<int:asset_id>', methods=['PUT'])
@@ -162,7 +181,6 @@ def update_asset(asset_id):
         
         data = request.get_json()
         
-        # Update fields if provided
         if 'title' in data:
             asset.title = data['title']
         if 'description' in data:
@@ -214,6 +232,7 @@ def debug_assets():
                 'title': asset.title,
                 'owner_id': asset.owner_id,
                 'asset_type': asset.asset_type.value,
+                'is_available': asset.is_available,
                 'images_count': len(asset.images) if hasattr(asset, 'images') else 0
             })
         return jsonify({
@@ -231,14 +250,13 @@ def get_my_assets():
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         
-        print(f"User {user_id} ({user.user_type.value}) requesting their assets")  # Debug log
+        print(f"[GET MY ASSETS] User {user_id} ({user.user_type.value}) requesting their assets")
         
-        # Use eager loading for images
         assets = Asset.query.options(db.joinedload(Asset.images)).filter_by(owner_id=user_id).all()
         
-        print(f"Found {len(assets)} assets for user {user_id}")  # Debug log
+        print(f"[GET MY ASSETS] Found {len(assets)} assets for user {user_id}")
         for asset in assets:
-            print(f"Asset: {asset.id} - {asset.title} - Images: {len(asset.images)}")  # Debug log
+            print(f"[GET MY ASSETS] Asset: {asset.id} - {asset.title} - Available: {asset.is_available} - Images: {len(asset.images)}")
         
         return jsonify({
             'assets': [asset.to_dict() for asset in assets],
@@ -246,5 +264,28 @@ def get_my_assets():
         }), 200
         
     except Exception as e:
-        print(f"Error in get_my_assets: {e}")  # Debug log
+        print(f"Error in get_my_assets: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@assets_bp.route('/<int:asset_id>', methods=['DELETE'])
+@jwt_required()
+def delete_asset(asset_id):
+    """Delete an asset (owner only)"""
+    try:
+        user_id = get_jwt_identity()
+        asset = Asset.query.get(asset_id)
+        
+        if not asset:
+            return jsonify({'error': 'Asset not found'}), 404
+        
+        if asset.owner_id != user_id:
+            return jsonify({'error': 'You can only delete your own assets'}), 403
+        
+        db.session.delete(asset)
+        db.session.commit()
+        
+        return jsonify({'message': 'Asset deleted successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
