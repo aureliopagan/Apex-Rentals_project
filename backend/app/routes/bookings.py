@@ -33,8 +33,8 @@ def create_booking():
         if not asset:
             return jsonify({'error': 'Asset not found'}), 404
         
-        if not asset.is_available:
-            return jsonify({'error': 'Asset is not available'}), 400
+        # REMOVED: No longer checking asset.is_available here
+        # Assets are available unless already booked for the selected dates
         
         # Parse dates
         try:
@@ -50,7 +50,7 @@ def create_booking():
         if start_date < datetime.now():
             return jsonify({'error': 'Start date cannot be in the past'}), 400
         
-        # Check for conflicting bookings
+        # Check for conflicting bookings - THIS is the only availability check
         conflicting_bookings = Booking.query.filter(
             Booking.asset_id == data['asset_id'],
             Booking.status.in_([BookingStatus.CONFIRMED, BookingStatus.PENDING]),
@@ -206,7 +206,7 @@ def check_asset_availability(asset_id):
         except ValueError:
             return jsonify({'error': 'Invalid date format'}), 400
         
-        # Check for conflicting bookings
+        # Check for conflicting bookings - ONLY check for booking conflicts, not asset.is_available
         conflicting_bookings = Booking.query.filter(
             Booking.asset_id == asset_id,
             Booking.status.in_([BookingStatus.CONFIRMED, BookingStatus.PENDING]),
@@ -217,7 +217,9 @@ def check_asset_availability(asset_id):
             )
         ).all()
         
-        is_available = len(conflicting_bookings) == 0 and asset.is_available
+        # FIXED: Assets are available unless already booked
+        # Removed the "and asset.is_available" check
+        is_available = len(conflicting_bookings) == 0
         
         return jsonify({
             'asset_id': asset_id,
