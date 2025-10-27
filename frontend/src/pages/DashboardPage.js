@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { bookingsAPI, assetsAPI } from '../services/api';
+import { bookingsAPI } from '../services/api';
 
 const DashboardPage = () => {
   const { user, isAuthenticated } = useAuth();
   const [bookings, setBookings] = useState({ bookings_made: [], bookings_received: [] });
-  const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadDashboardData = useCallback(async () => {
@@ -17,21 +16,12 @@ const DashboardPage = () => {
       const bookingsResponse = await bookingsAPI.getMyBookings();
       setBookings(bookingsResponse.data);
       console.log('Bookings loaded:', bookingsResponse.data);
-
-      // Load assets if user is an owner
-      if (user?.user_type === 'owner') {
-        console.log('User is owner, loading assets...');
-        const assetsResponse = await assetsAPI.getMyAssets();
-        console.log('Assets response:', assetsResponse.data);
-        setAssets(assetsResponse.data.assets || []);
-        console.log('Assets set:', assetsResponse.data.assets);
-      }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
-  }, [user?.user_type, user]);
+  }, [user]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -76,11 +66,59 @@ const DashboardPage = () => {
 
   return (
     <div style={{ 
-      background: 'linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%)',
       minHeight: '100vh',
-      padding: '2rem 0'
+      background: '#FFFFFF',
+      padding: '2rem 0',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <div className="container">
+      {/* FUTURISTIC GEOMETRIC PATTERN BACKGROUND - Same as Login */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 0,
+        backgroundImage: `
+          linear-gradient(30deg, rgba(240, 240, 240, 0.8) 12%, transparent 12.5%, transparent 87%, rgba(240, 240, 240, 0.8) 87.5%),
+          linear-gradient(150deg, rgba(240, 240, 240, 0.8) 12%, transparent 12.5%, transparent 87%, rgba(240, 240, 240, 0.8) 87.5%),
+          linear-gradient(30deg, rgba(230, 230, 230, 0.6) 12%, transparent 12.5%, transparent 87%, rgba(230, 230, 230, 0.6) 87.5%),
+          linear-gradient(150deg, rgba(230, 230, 230, 0.6) 12%, transparent 12.5%, transparent 87%, rgba(230, 230, 230, 0.6) 87.5%),
+          linear-gradient(60deg, rgba(250, 250, 250, 0.5) 25%, transparent 25.5%, transparent 75%, rgba(250, 250, 250, 0.5) 75%),
+          linear-gradient(60deg, rgba(250, 250, 250, 0.5) 25%, transparent 25.5%, transparent 75%, rgba(250, 250, 250, 0.5) 75%),
+          repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(220, 220, 220, 0.3) 20px, rgba(220, 220, 220, 0.3) 40px),
+          repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(210, 210, 210, 0.2) 20px, rgba(210, 210, 210, 0.2) 40px),
+          radial-gradient(circle at 20% 50%, rgba(235, 235, 235, 0.4) 0%, transparent 50%),
+          radial-gradient(circle at 80% 80%, rgba(245, 245, 245, 0.4) 0%, transparent 50%),
+          radial-gradient(circle at 40% 20%, rgba(225, 225, 225, 0.3) 0%, transparent 50%)
+        `,
+        backgroundSize: '80px 140px, 80px 140px, 80px 140px, 80px 140px, 80px 140px, 80px 140px, 100px 100px, 100px 100px, 600px 600px, 800px 800px, 500px 500px',
+        backgroundPosition: '0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px, 0 0, 0 0, 0 0, 0 0, 0 0',
+        animation: 'subtleMove 60s ease-in-out infinite'
+      }}></div>
+
+      {/* Animated accent lines */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '2px',
+        background: 'linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent)',
+        zIndex: 1
+      }}></div>
+      <div style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        width: '100%',
+        height: '2px',
+        background: 'linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent)',
+        zIndex: 1
+      }}></div>
+
+      <div className="container" style={{ position: 'relative', zIndex: 2 }}>
         <div style={{ marginBottom: '3rem' }}>
           <h1 style={{ 
             fontSize: '2.5rem', 
@@ -100,7 +138,12 @@ const DashboardPage = () => {
 
         <div className="grid grid-2">
           <div>
-            <div className="card">
+            <div className="card" style={{
+              background: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(10px)',
+              border: '2px solid rgba(212, 175, 55, 0.3)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            }}>
               <div className="card-header">
                 <h2 className="card-title">
                   {user?.user_type === 'client' ? 'My Bookings' : 'Booking Requests'}
@@ -114,8 +157,8 @@ const DashboardPage = () => {
                   </h3>
                   
                   {bookings.bookings_made?.length > 0 ? (
-                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                      {bookings.bookings_made.map(booking => (
+                    <div>
+                      {bookings.bookings_made.slice(0, 3).map(booking => (
                         <div key={booking.id} style={{ 
                           padding: '1rem',
                           border: '1px solid #e5e7eb',
@@ -123,29 +166,29 @@ const DashboardPage = () => {
                           marginBottom: '1rem',
                           backgroundColor: '#fefefe'
                         }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                            <h4 style={{ fontWeight: '600', color: '#1a1a1a' }}>
-                              {booking.asset?.title}
-                            </h4>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <strong style={{ color: '#1a1a1a' }}>{booking.asset_title}</strong>
                             {getStatusBadge(booking.status)}
                           </div>
-                          <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                            📍 {booking.asset?.location}
-                          </p>
-                          <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                            📅 {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
+                          <p style={{ color: '#666666', fontSize: '0.9rem' }}>
+                            {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
                           </p>
                           <p style={{ color: '#d4af37', fontWeight: '600' }}>
-                            💰 ${booking.total_price}
+                            ${booking.total_price}
                           </p>
                         </div>
                       ))}
+                      {bookings.bookings_made.length > 3 && (
+                        <Link to="/bookings" className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
+                          View All Bookings
+                        </Link>
+                      )}
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '2rem', color: '#666666' }}>
                       <p>No bookings yet</p>
                       <Link to="/assets" className="btn btn-gold" style={{ marginTop: '1rem' }}>
-                        Browse Assets
+                        View All Assets
                       </Link>
                     </div>
                   )}
@@ -157,8 +200,8 @@ const DashboardPage = () => {
                   </h3>
                   
                   {bookings.bookings_received?.length > 0 ? (
-                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                      {bookings.bookings_received.map(booking => (
+                    <div>
+                      {bookings.bookings_received.slice(0, 3).map(booking => (
                         <div key={booking.id} style={{ 
                           padding: '1rem',
                           border: '1px solid #e5e7eb',
@@ -166,23 +209,26 @@ const DashboardPage = () => {
                           marginBottom: '1rem',
                           backgroundColor: '#fefefe'
                         }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                            <h4 style={{ fontWeight: '600', color: '#1a1a1a' }}>
-                              {booking.asset?.title}
-                            </h4>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <strong style={{ color: '#1a1a1a' }}>{booking.asset_title}</strong>
                             {getStatusBadge(booking.status)}
                           </div>
-                          <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                            👤 Client: {booking.client?.first_name} {booking.client?.last_name}
+                          <p style={{ color: '#666666', fontSize: '0.9rem' }}>
+                            From: {booking.client_name}
                           </p>
-                          <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                            📅 {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
+                          <p style={{ color: '#666666', fontSize: '0.9rem' }}>
+                            {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
                           </p>
                           <p style={{ color: '#d4af37', fontWeight: '600' }}>
-                            💰 ${booking.total_price}
+                            ${booking.total_price}
                           </p>
                         </div>
                       ))}
+                      {bookings.bookings_received.length > 3 && (
+                        <Link to="/bookings" className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
+                          View All Requests
+                        </Link>
+                      )}
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '2rem', color: '#666666' }}>
@@ -195,100 +241,14 @@ const DashboardPage = () => {
                 </div>
               )}
             </div>
-          </div>
 
-          <div>
-            <div className="card" style={{ marginBottom: '2rem' }}>
-              <div className="card-header">
-                <h2 className="card-title">Quick Actions</h2>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {user?.user_type === 'client' ? (
-                  <>
-                    <Link to="/assets" className="btn btn-gold">
-                      Browse Assets
-                    </Link>
-                    <Link to="/profile" className="btn btn-maroon">
-                      Edit Profile
-                    </Link>
-                    <Link to="/reviews" className="btn btn-brown">
-                      My Reviews
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Link to="/assets/create" className="btn btn-gold">
-                      Add New Asset
-                    </Link>
-                    <Link to="/assets/manage" className="btn btn-maroon">
-                      Manage Assets
-                    </Link>
-                    <Link to="/earnings" className="btn btn-brown">
-                      View Earnings
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {user?.user_type === 'owner' && (
-              <div className="card">
-                <div className="card-header">
-                  <h2 className="card-title">My Assets ({assets.length})</h2>
-                </div>
-                
-                {assets.length > 0 ? (
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {assets.map(asset => (
-                      <div key={asset.id} style={{ 
-                        padding: '1rem',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '0.5rem',
-                        marginBottom: '1rem',
-                        backgroundColor: '#fefefe'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ flex: 1 }}>
-                            <h4 style={{ fontWeight: '600', color: '#1a1a1a', marginBottom: '0.5rem' }}>
-                              {asset.asset_type === 'yacht' && '🛥️'} 
-                              {asset.asset_type === 'car' && '🚗'} 
-                              {asset.asset_type === 'jet' && '✈️'} 
-                              {asset.title}
-                            </h4>
-                            <p style={{ color: '#666666', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                              📍 {asset.location}
-                            </p>
-                            <p style={{ color: '#d4af37', fontWeight: '600' }}>
-                              ${asset.price_per_day}/day
-                            </p>
-                          </div>
-                          <span style={{ 
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '1rem',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            backgroundColor: asset.is_available ? '#d1fae5' : '#fee2e2',
-                            color: asset.is_available ? '#065f46' : '#991b1b'
-                          }}>
-                            {asset.is_available ? 'Available' : 'Unavailable'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: '#666666' }}>
-                    <p>No assets listed yet</p>
-                    <Link to="/assets/create" className="btn btn-gold" style={{ marginTop: '1rem' }}>
-                      List Your First Asset
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="card" style={{ marginTop: '2rem' }}>
+            <div className="card" style={{ 
+              marginTop: '2rem',
+              background: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(10px)',
+              border: '2px solid rgba(212, 175, 55, 0.3)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            }}>
               <div className="card-header">
                 <h2 className="card-title">Profile Summary</h2>
               </div>
@@ -312,8 +272,70 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
+
+          <div>
+            <div className="card" style={{
+              background: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(10px)',
+              border: '2px solid rgba(212, 175, 55, 0.3)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            }}>
+              <div className="card-header">
+                <h2 className="card-title">Quick Actions</h2>
+              </div>
+              
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                {user?.user_type === 'client' ? (
+                  <>
+                    <Link to="/assets" className="btn btn-gold">
+                      Browse Assets
+                    </Link>
+                    <Link to="/profile" className="btn btn-gold">
+                      Edit Profile
+                    </Link>
+                    <Link to="/reviews" className="btn btn-gold">
+                      My Reviews
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/assets/create" className="btn btn-gold">
+                      Add New Asset
+                    </Link>
+                    <Link to="/assets/manage" className="btn btn-gold">
+                      Manage Assets
+                    </Link>
+                    <Link to="/earnings" className="btn btn-gold">
+                      View Earnings
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes subtleMove {
+          0%, 100% {
+            transform: translate(0, 0) rotate(0deg);
+          }
+          25% {
+            transform: translate(10px, 10px) rotate(1deg);
+          }
+          50% {
+            transform: translate(-5px, 15px) rotate(-1deg);
+          }
+          75% {
+            transform: translate(15px, -10px) rotate(0.5deg);
+          }
+        }
+      `}</style>
     </div>
   );
 };
