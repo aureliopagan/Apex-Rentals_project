@@ -1,7 +1,4 @@
-// BOOKING DATE FIX - Key changes in handleBookingSubmit and checkAvailability functions
-// The issue: HTML date inputs return 'YYYY-MM-DD' format, but backend expects ISO datetime 'YYYY-MM-DDTHH:MM:SS'
-// The fix: Convert dates to ISO datetime format before sending to API
-
+// COMPLETE FIX - Images working + Booking working + Dashboard refresh
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -46,13 +43,11 @@ const AssetDetailPage = () => {
     }
   }, [id]);
 
-  // FIX #1: Add time component to dates for availability check
   const checkAvailability = useCallback(async () => {
     if (!bookingData.start_date || !bookingData.end_date) return;
 
     try {
       const token = localStorage.getItem('authToken');
-      // Convert YYYY-MM-DD to YYYY-MM-DDTHH:MM:SS format
       const startDateTime = `${bookingData.start_date}T00:00:00`;
       const endDateTime = `${bookingData.end_date}T23:59:59`;
       
@@ -67,6 +62,7 @@ const AssetDetailPage = () => {
         }
       );
       setAvailability(response.data);
+      console.log('Availability check:', response.data);
     } catch (error) {
       console.error('Error checking availability:', error);
     }
@@ -98,7 +94,6 @@ const AssetDetailPage = () => {
     return daysDiff > 0 ? daysDiff * asset.price_per_day : 0;
   };
 
-  // FIX #2: Add time component to dates when submitting booking
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
     
@@ -119,11 +114,17 @@ const AssetDetailPage = () => {
       const token = localStorage.getItem('authToken');
       const totalPrice = calculateTotalPrice();
 
-      // Convert YYYY-MM-DD to YYYY-MM-DDTHH:MM:SS format
       const startDateTime = `${bookingData.start_date}T00:00:00`;
       const endDateTime = `${bookingData.end_date}T23:59:59`;
 
-      await axios.post(
+      console.log('Submitting booking:', {
+        asset_id: parseInt(id),
+        start_date: startDateTime,
+        end_date: endDateTime,
+        total_price: totalPrice
+      });
+
+      const response = await axios.post(
         'http://localhost:5000/api/bookings/',
         {
           asset_id: parseInt(id),
@@ -140,18 +141,21 @@ const AssetDetailPage = () => {
         }
       );
 
-      setSuccessMessage('Booking request submitted successfully!');
+      console.log('Booking created successfully:', response.data);
+      setSuccessMessage('Booking request submitted successfully! Redirecting to dashboard...');
       setBookingData({
         start_date: '',
         end_date: '',
         special_requests: ''
       });
       
+      // Navigate after 1.5 seconds
       setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
+        navigate('/dashboard', { state: { refresh: true } });
+      }, 1500);
     } catch (error) {
       console.error('Error creating booking:', error);
+      console.error('Error response:', error.response?.data);
       setError(error.response?.data?.error || 'Failed to create booking');
     } finally {
       setBookingLoading(false);
@@ -386,9 +390,9 @@ const AssetDetailPage = () => {
                 marginBottom: '2rem'
               }}>
                 <h3 style={{ 
-                  fontSize: '1.25rem',
                   fontWeight: '600',
-                  marginBottom: '1rem'
+                  marginBottom: '1rem',
+                  color: '#722f37'
                 }}>
                   Description
                 </h3>
@@ -397,15 +401,13 @@ const AssetDetailPage = () => {
                 </p>
               </div>
 
-              {/* Owner Info */}
               <div style={{ 
                 padding: '1.5rem',
-                backgroundColor: '#faf8f5',
+                backgroundColor: '#fef3c7',
                 borderRadius: '0.75rem',
-                border: '1px solid rgba(212, 175, 55, 0.3)'
+                border: '2px solid #d4af37'
               }}>
                 <h3 style={{ 
-                  fontSize: '1.1rem',
                   fontWeight: '600',
                   marginBottom: '0.5rem',
                   color: '#722f37'
@@ -583,55 +585,36 @@ const AssetDetailPage = () => {
                       cursor: (bookingLoading || !availability?.is_available) ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {bookingLoading ? 'Processing...' : 'REQUEST BOOKING'}
+                    {bookingLoading ? 'Processing...' : 'Request Booking'}
                   </button>
                 </form>
               )}
             </div>
 
             {/* Reviews Section */}
-            {reviews && reviews.length > 0 && (
+            {reviews.length > 0 && (
               <div className="card" style={{ marginTop: '2rem' }}>
-                <h2 style={{ 
-                  fontSize: '1.5rem',
-                  color: '#722f37',
-                  marginBottom: '1.5rem'
-                }}>
+                <h3 style={{ color: '#722f37', marginBottom: '1rem', fontSize: '1.25rem' }}>
                   Reviews ({reviews.length})
-                </h2>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {reviews.map((review) => (
-                    <div 
-                      key={review.id}
-                      style={{ 
-                        padding: '1.5rem',
-                        backgroundColor: '#faf8f5',
-                        borderRadius: '0.75rem',
-                        border: '1px solid rgba(212, 175, 55, 0.2)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                        <strong style={{ color: '#1a1a1a' }}>
-                          {review.reviewer?.first_name} {review.reviewer?.last_name}
-                        </strong>
-                        <div style={{ color: '#d4af37', fontWeight: '600' }}>
-                          {'⭐'.repeat(review.rating)}
-                        </div>
-                      </div>
-                      <p style={{ color: '#666666', lineHeight: '1.6' }}>
-                        {review.comment}
-                      </p>
-                      <p style={{ color: '#999999', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                        {new Date(review.created_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
+                </h3>
+                {reviews.map((review, index) => (
+                  <div key={index} style={{ 
+                    padding: '1rem',
+                    borderBottom: index < reviews.length - 1 ? '1px solid #e5e7eb' : 'none'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: '600' }}>
+                        {review.reviewer_name}
+                      </span>
+                      <span style={{ color: '#d4af37' }}>
+                        {'⭐'.repeat(review.rating)}
+                      </span>
                     </div>
-                  ))}
-                </div>
+                    <p style={{ color: '#666666' }}>
+                      {review.comment}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </div>

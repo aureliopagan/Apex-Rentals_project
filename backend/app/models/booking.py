@@ -46,6 +46,11 @@ class Booking(db.Model):
         
         # Include related data if requested
         if include_relations:
+            # THE FIX - Add asset_title and client_name that frontend needs
+            booking_dict['asset_title'] = self.asset.title if self.asset else None
+            booking_dict['client_name'] = f"{self.client.first_name} {self.client.last_name}" if self.client else None
+            booking_dict['owner_name'] = f"{self.owner.first_name} {self.owner.last_name}" if self.owner else None
+            
             if self.client:
                 booking_dict['client'] = {
                     'id': self.client.id,

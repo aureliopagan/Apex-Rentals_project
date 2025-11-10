@@ -12,12 +12,12 @@ const DashboardPage = () => {
     try {
       console.log('Loading dashboard data for user:', user);
       
-      // Load bookings for all users
       const bookingsResponse = await bookingsAPI.getMyBookings();
+      console.log('Raw bookings response:', bookingsResponse.data);
       setBookings(bookingsResponse.data);
-      console.log('Bookings loaded:', bookingsResponse.data);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      console.error('Error details:', error.response?.data);
     } finally {
       setLoading(false);
     }
@@ -27,6 +27,16 @@ const DashboardPage = () => {
     if (isAuthenticated && user) {
       loadDashboardData();
     }
+  }, [isAuthenticated, user, loadDashboardData]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isAuthenticated && user) {
+        loadDashboardData();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [isAuthenticated, user, loadDashboardData]);
 
   const getStatusBadge = (status) => {
@@ -72,7 +82,6 @@ const DashboardPage = () => {
       position: 'relative',
       overflow: 'hidden'
     }}>
-      {/* FUTURISTIC GEOMETRIC PATTERN BACKGROUND - Same as Login */}
       <div style={{
         position: 'absolute',
         top: 0,
@@ -98,7 +107,6 @@ const DashboardPage = () => {
         animation: 'subtleMove 60s ease-in-out infinite'
       }}></div>
 
-      {/* Animated accent lines */}
       <div style={{
         position: 'absolute',
         top: 0,
@@ -158,7 +166,7 @@ const DashboardPage = () => {
                   
                   {bookings.bookings_made?.length > 0 ? (
                     <div>
-                      {bookings.bookings_made.slice(0, 3).map(booking => (
+                      {bookings.bookings_made.map(booking => (
                         <div key={booking.id} style={{ 
                           padding: '1rem',
                           border: '1px solid #e5e7eb',
@@ -167,7 +175,7 @@ const DashboardPage = () => {
                           backgroundColor: '#fefefe'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <strong style={{ color: '#1a1a1a' }}>{booking.asset_title}</strong>
+                            <strong style={{ color: '#1a1a1a' }}>{booking.asset?.title || 'Asset'}</strong>
                             {getStatusBadge(booking.status)}
                           </div>
                           <p style={{ color: '#666666', fontSize: '0.9rem' }}>
@@ -178,11 +186,6 @@ const DashboardPage = () => {
                           </p>
                         </div>
                       ))}
-                      {bookings.bookings_made.length > 3 && (
-                        <Link to="/bookings" className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
-                          View All Bookings
-                        </Link>
-                      )}
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '2rem', color: '#666666' }}>
@@ -201,7 +204,7 @@ const DashboardPage = () => {
                   
                   {bookings.bookings_received?.length > 0 ? (
                     <div>
-                      {bookings.bookings_received.slice(0, 3).map(booking => (
+                      {bookings.bookings_received.map(booking => (
                         <div key={booking.id} style={{ 
                           padding: '1rem',
                           border: '1px solid #e5e7eb',
@@ -210,11 +213,11 @@ const DashboardPage = () => {
                           backgroundColor: '#fefefe'
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                            <strong style={{ color: '#1a1a1a' }}>{booking.asset_title}</strong>
+                            <strong style={{ color: '#1a1a1a' }}>{booking.asset?.title || 'Asset'}</strong>
                             {getStatusBadge(booking.status)}
                           </div>
                           <p style={{ color: '#666666', fontSize: '0.9rem' }}>
-                            From: {booking.client_name}
+                            From: {booking.client?.first_name} {booking.client?.last_name}
                           </p>
                           <p style={{ color: '#666666', fontSize: '0.9rem' }}>
                             {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
@@ -224,11 +227,6 @@ const DashboardPage = () => {
                           </p>
                         </div>
                       ))}
-                      {bookings.bookings_received.length > 3 && (
-                        <Link to="/bookings" className="btn btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
-                          View All Requests
-                        </Link>
-                      )}
                     </div>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '2rem', color: '#666666' }}>
