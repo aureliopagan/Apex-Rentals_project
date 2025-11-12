@@ -38,7 +38,7 @@ const LoginPage = () => {
   return (
     <div style={{ 
       minHeight: '100vh',
-      background: '#FFFFFF',
+      background: 'linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -46,51 +46,22 @@ const LoginPage = () => {
       position: 'relative',
       overflow: 'hidden'
     }}>
-      {/* FUTURISTIC GEOMETRIC PATTERN BACKGROUND */}
+      {/* Geometric background pattern - SAME AS REGISTER PAGE */}
       <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
         height: '100%',
+        opacity: 0.03,
+        pointerEvents: 'none',
         zIndex: 0,
-        backgroundImage: `
-          linear-gradient(30deg, rgba(240, 240, 240, 0.8) 12%, transparent 12.5%, transparent 87%, rgba(240, 240, 240, 0.8) 87.5%),
-          linear-gradient(150deg, rgba(240, 240, 240, 0.8) 12%, transparent 12.5%, transparent 87%, rgba(240, 240, 240, 0.8) 87.5%),
-          linear-gradient(30deg, rgba(230, 230, 230, 0.6) 12%, transparent 12.5%, transparent 87%, rgba(230, 230, 230, 0.6) 87.5%),
-          linear-gradient(150deg, rgba(230, 230, 230, 0.6) 12%, transparent 12.5%, transparent 87%, rgba(230, 230, 230, 0.6) 87.5%),
-          linear-gradient(60deg, rgba(250, 250, 250, 0.5) 25%, transparent 25.5%, transparent 75%, rgba(250, 250, 250, 0.5) 75%),
-          linear-gradient(60deg, rgba(250, 250, 250, 0.5) 25%, transparent 25.5%, transparent 75%, rgba(250, 250, 250, 0.5) 75%),
-          repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(220, 220, 220, 0.3) 20px, rgba(220, 220, 220, 0.3) 40px),
-          repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(210, 210, 210, 0.2) 20px, rgba(210, 210, 210, 0.2) 40px),
-          radial-gradient(circle at 20% 50%, rgba(235, 235, 235, 0.4) 0%, transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(245, 245, 245, 0.4) 0%, transparent 50%),
-          radial-gradient(circle at 40% 20%, rgba(225, 225, 225, 0.3) 0%, transparent 50%)
+        background: `
+          repeating-linear-gradient(45deg, #722f37 0, #722f37 1px, transparent 0, transparent 50%),
+          repeating-linear-gradient(-45deg, #d4af37 0, #d4af37 1px, transparent 0, transparent 50%)
         `,
-        backgroundSize: '80px 140px, 80px 140px, 80px 140px, 80px 140px, 80px 140px, 80px 140px, 100px 100px, 100px 100px, 600px 600px, 800px 800px, 500px 500px',
-        backgroundPosition: '0 0, 0 0, 40px 70px, 40px 70px, 0 0, 40px 70px, 0 0, 0 0, 0 0, 0 0, 0 0',
-        animation: 'subtleMove 60s ease-in-out infinite'
-      }}></div>
-
-      {/* Animated accent lines */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '2px',
-        background: 'linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent)',
-        zIndex: 1
-      }}></div>
-      <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        height: '2px',
-        background: 'linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent)',
-        zIndex: 1
-      }}></div>
+        backgroundSize: '20px 20px'
+      }} />
 
       <div className="container" style={{ maxWidth: '450px', position: 'relative', zIndex: 2 }}>
         {/* Back to Home Link */}
@@ -101,7 +72,8 @@ const LoginPage = () => {
               color: '#d4af37', 
               textDecoration: 'none', 
               fontSize: '0.9rem',
-              fontWeight: '500'
+              fontWeight: '500',
+              transition: 'color 0.2s'
             }}
           >
             ← Back to Home
@@ -120,10 +92,7 @@ const LoginPage = () => {
             <h1 style={{ 
               fontSize: '2rem', 
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #d4af37 0%, #b8941f 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#d4af37',
               marginBottom: '0.5rem'
             }}>
               Welcome Back
@@ -141,7 +110,7 @@ const LoginPage = () => {
               padding: '1rem', 
               borderRadius: '0.5rem',
               marginBottom: '1.5rem',
-              border: '1px solid #fecaca'
+              border: '1px solid #fca5a5'
             }}>
               {error}
             </div>
@@ -210,29 +179,10 @@ const LoginPage = () => {
               Don't have an account?{' '}
               <Link 
                 to="/register" 
-                className="btn"
                 style={{ 
-                  display: 'inline-block',
-                  padding: '0.5rem 1.5rem',
-                  fontSize: '0.9rem',
-                  background: 'linear-gradient(135deg, #d4af37 0%, #b8941f 100%)',
-                  color: '#000000',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontWeight: '700',
+                  color: '#d4af37',
                   textDecoration: 'none',
-                  transition: 'all 0.3s',
-                  boxShadow: '0 2px 8px rgba(212, 175, 55, 0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = 'linear-gradient(135deg, #b8941f 0%, #9a7c15 100%)';
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'linear-gradient(135deg, #d4af37 0%, #b8941f 100%)';
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 2px 8px rgba(212, 175, 55, 0.3)';
+                  fontWeight: '600'
                 }}
               >
                 Create Account
@@ -240,49 +190,7 @@ const LoginPage = () => {
             </p>
           </div>
         </div>
-
-        {/* Demo Credentials */}
-        <div style={{ 
-          marginTop: '2rem', 
-          padding: '1rem', 
-          backgroundColor: 'rgba(255, 255, 255, 0.9)',
-          borderRadius: '0.5rem',
-          border: '1px solid rgba(212, 175, 55, 0.3)',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
-        }}>
-          <p style={{ 
-            color: '#d4af37', 
-            fontSize: '0.9rem', 
-            textAlign: 'center',
-            marginBottom: '0.5rem',
-            fontWeight: '600'
-          }}>
-            Demo Accounts:
-          </p>
-          <p style={{ color: '#666666', fontSize: '0.8rem', textAlign: 'center' }}>
-            Client: test@example.com | Owner: owner@example.com
-            <br />
-            Password: password123
-          </p>
-        </div>
       </div>
-
-      <style>{`
-        @keyframes subtleMove {
-          0%, 100% {
-            transform: translate(0, 0) rotate(0deg);
-          }
-          25% {
-            transform: translate(10px, 10px) rotate(1deg);
-          }
-          50% {
-            transform: translate(-5px, 15px) rotate(-1deg);
-          }
-          75% {
-            transform: translate(15px, -10px) rotate(0.5deg);
-          }
-        }
-      `}</style>
     </div>
   );
 };

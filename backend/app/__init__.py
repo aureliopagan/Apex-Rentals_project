@@ -30,12 +30,14 @@ def create_app():
     from app.routes.bookings import bookings_bp
     from app.routes.reviews import reviews_bp
     from app.routes.earnings import earnings_bp
+    from app.routes.cleanup import cleanup_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(assets_bp, url_prefix='/api/assets')
     app.register_blueprint(bookings_bp, url_prefix='/api/bookings')
     app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
     app.register_blueprint(earnings_bp, url_prefix='/api/earnings')
+    app.register_blueprint(cleanup_bp, url_prefix='/api/cleanup')
     
     @app.route('/uploads/assets/<filename>')
     def uploaded_file(filename):

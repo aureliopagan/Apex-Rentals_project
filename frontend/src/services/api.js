@@ -46,12 +46,14 @@ export const assetsAPI = {
 };
 
 export const bookingsAPI = {
-  create: (bookingData) => api.post('/bookings/', bookingData),  // FIXED: Added trailing slash
-  getMyBookings: () => api.get('/bookings/'),  // FIXED: Added trailing slash
+  create: (bookingData) => api.post('/bookings/', bookingData),
+  getMyBookings: () => api.get('/bookings/'),
   getById: (id) => api.get(`/bookings/${id}`),
   updateStatus: (id, status) => api.put(`/bookings/${id}/status`, { status }),
   checkAvailability: (assetId, startDate, endDate) => 
     api.get(`/bookings/asset/${assetId}/availability?start_date=${startDate}&end_date=${endDate}`),
+  cleanupExpired: () => api.post('/cleanup/cleanup-my-expired'),
+  getAssetBookings: (assetId) => api.get(`/bookings/asset/${assetId}/bookings`),
 };
 
 export const reviewsAPI = {

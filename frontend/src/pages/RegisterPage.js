@@ -42,13 +42,32 @@ const RegisterPage = () => {
   return (
     <div style={{ 
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a1a1a 0%, #722f37 50%, #d4af37 100%)',
+      background: 'linear-gradient(135deg, #faf8f5 0%, #f5f3f0 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '2rem'
+      padding: '2rem',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <div className="container" style={{ maxWidth: '500px' }}>
+      {/* Geometric background pattern */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        opacity: 0.03,
+        pointerEvents: 'none',
+        zIndex: 0,
+        background: `
+          repeating-linear-gradient(45deg, #722f37 0, #722f37 1px, transparent 0, transparent 50%),
+          repeating-linear-gradient(-45deg, #d4af37 0, #d4af37 1px, transparent 0, transparent 50%)
+        `,
+        backgroundSize: '20px 20px'
+      }} />
+
+      <div className="container" style={{ maxWidth: '500px', position: 'relative', zIndex: 1 }}>
         {/* Back to Home Link */}
         <div style={{ marginBottom: '2rem' }}>
           <Link 
@@ -57,7 +76,8 @@ const RegisterPage = () => {
               color: '#d4af37', 
               textDecoration: 'none', 
               fontSize: '0.9rem',
-              fontWeight: '500'
+              fontWeight: '500',
+              transition: 'color 0.2s'
             }}
           >
             ← Back to Home
@@ -66,19 +86,17 @@ const RegisterPage = () => {
 
         {/* Registration Card */}
         <div className="card" style={{ 
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'rgba(255, 255, 255, 0.98)',
           backdropFilter: 'blur(10px)',
-          border: '2px solid rgba(212, 175, 55, 0.3)'
+          border: '2px solid rgba(212, 175, 55, 0.3)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
         }}>
           {/* Header */}
           <div className="text-center" style={{ marginBottom: '2rem' }}>
             <h1 style={{ 
               fontSize: '2rem', 
               fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #d4af37 0%, #b8941f 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              color: '#d4af37',
               marginBottom: '0.5rem'
             }}>
               Join Apex Rentals
@@ -96,7 +114,7 @@ const RegisterPage = () => {
               padding: '1rem', 
               borderRadius: '0.5rem',
               marginBottom: '1.5rem',
-              border: '1px solid #fecaca'
+              border: '1px solid #fca5a5'
             }}>
               {error}
             </div>
@@ -219,11 +237,10 @@ const RegisterPage = () => {
               Already have an account?{' '}
               <Link 
                 to="/login" 
-                className="btn btn-maroon"
                 style={{ 
-                  display: 'inline-block',
-                  padding: '0.5rem 1.5rem',
-                  fontSize: '0.9rem'
+                  color: '#d4af37',
+                  textDecoration: 'none',
+                  fontWeight: '600'
                 }}
               >
                 Sign In
@@ -236,9 +253,10 @@ const RegisterPage = () => {
         <div style={{ 
           marginTop: '2rem', 
           padding: '1.5rem', 
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '0.5rem',
-          border: '1px solid rgba(212, 175, 55, 0.3)'
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: '0.75rem',
+          border: '2px solid rgba(212, 175, 55, 0.3)',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.05)'
         }}>
           <h3 style={{ 
             color: '#d4af37', 
@@ -248,9 +266,13 @@ const RegisterPage = () => {
           }}>
             Account Types:
           </h3>
-          <div style={{ color: '#f0f0f0', fontSize: '0.85rem', lineHeight: '1.5' }}>
-            <p><strong style={{ color: '#d4af37' }}>Client:</strong> Browse and book luxury yachts, cars, and jets</p>
-            <p><strong style={{ color: '#d4af37' }}>Owner:</strong> List your luxury assets and receive bookings</p>
+          <div style={{ color: '#666666', fontSize: '0.9rem', lineHeight: '1.6' }}>
+            <p style={{ marginBottom: '0.5rem' }}>
+              <strong style={{ color: '#722f37' }}>Client:</strong> Browse and book luxury yachts, cars, and jets
+            </p>
+            <p>
+              <strong style={{ color: '#722f37' }}>Owner:</strong> List your luxury assets and receive bookings
+            </p>
           </div>
         </div>
       </div>

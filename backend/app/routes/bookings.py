@@ -33,9 +33,6 @@ def create_booking():
         if not asset:
             return jsonify({'error': 'Asset not found'}), 404
         
-        # REMOVED: No longer checking asset.is_available here
-        # Assets are available unless already booked for the selected dates
-        
         # Parse dates
         try:
             start_date = datetime.fromisoformat(data['start_date'].replace('Z', '+00:00'))
@@ -50,7 +47,7 @@ def create_booking():
         if start_date < datetime.now():
             return jsonify({'error': 'Start date cannot be in the past'}), 400
         
-        # Check for conflicting bookings - THIS is the only availability check
+        # Check for conflicting bookings
         conflicting_bookings = Booking.query.filter(
             Booking.asset_id == data['asset_id'],
             Booking.status.in_([BookingStatus.CONFIRMED, BookingStatus.PENDING]),
@@ -206,7 +203,7 @@ def check_asset_availability(asset_id):
         except ValueError:
             return jsonify({'error': 'Invalid date format'}), 400
         
-        # Check for conflicting bookings - ONLY check for booking conflicts, not asset.is_available
+        # Check for conflicting bookings
         conflicting_bookings = Booking.query.filter(
             Booking.asset_id == asset_id,
             Booking.status.in_([BookingStatus.CONFIRMED, BookingStatus.PENDING]),
@@ -217,14 +214,36 @@ def check_asset_availability(asset_id):
             )
         ).all()
         
-        # FIXED: Assets are available unless already booked
-        # Removed the "and asset.is_available" check
         is_available = len(conflicting_bookings) == 0
         
         return jsonify({
             'asset_id': asset_id,
             'is_available': is_available,
             'conflicting_bookings': [booking.to_dict() for booking in conflicting_bookings]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bookings_bp.route('/asset/<int:asset_id>/bookings', methods=['GET'])
+def get_asset_bookings(asset_id):
+    """Get confirmed/pending bookings for an asset (for display purposes)"""
+    try:
+        asset = Asset.query.get(asset_id)
+        if not asset:
+            return jsonify({'error': 'Asset not found'}), 404
+        
+        # Get only confirmed and pending bookings that are current or future
+        now = datetime.now()
+        bookings = Booking.query.filter(
+            Booking.asset_id == asset_id,
+            Booking.status.in_([BookingStatus.CONFIRMED, BookingStatus.PENDING]),
+            Booking.end_date >= now  # Only show current and future bookings
+        ).order_by(Booking.start_date).all()
+        
+        return jsonify({
+            'bookings': [booking.to_dict() for booking in bookings],
+            'count': len(bookings)
         }), 200
         
     except Exception as e:
