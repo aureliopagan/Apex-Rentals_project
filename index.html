@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Rentals | Luxury Asset Rental Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            color: #1a1a1a;
+            line-height: 1.6;
+            background: #FFFFFF;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Navigation */
+        nav {
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            color: #D4AF37;
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            text-decoration: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #FFFFFF;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #D4AF37;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(114,47,55,0.7)), 
+                        url('https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600') center/cover;
+            color: #FFFFFF;
+            padding: 10rem 0;
+            text-align: center;
+            position: relative;
+            border-bottom: 3px solid #D4AF37;
+        }
+
+        .hero h1 {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            font-weight: bold;
+            color: #FFFFFF;
+            letter-spacing: 0.15em;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .gold-line {
+            width: 200px;
+            height: 3px;
+            background: #D4AF37;
+            margin: 2rem auto;
+            border-radius: 2px;
+        }
+
+        .hero p {
+            font-size: 1.8rem;
+            margin-bottom: 3rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+            font-weight: 300;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 1.5rem 3.5rem;
+            background: #D4AF37;
+            color: #000000;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+            border: 2px solid #D4AF37;
+        }
+
+        .btn:hover {
+            background: #000000;
+            color: #D4AF37;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(212, 175, 55, 0.5);
+        }
+
+        /* Section Styles */
+        section {
+            padding: 6rem 0;
+        }
+
+        section h2 {
+            font-size: 3.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #000000;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.3rem;
+            color: #333333;
+            margin-bottom: 4rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Features Section */
+        .features {
+            background: #FFFFFF;
+            position: relative;
+        }
+
+        .features::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #D4AF37, transparent);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4rem;
+            margin-top: 3rem;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .feature:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 30px rgba(212, 175, 55, 0.15);
+            border-color: #D4AF37;
+        }
+
+        .feature-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 2rem;
+            background: #D4AF37;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+            border: 4px solid #000000;
+        }
+
+        .feature h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #722F37;
+            font-weight: 700;
+        }
+
+        .feature p {
+            color: #333333;
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+
+        .feature-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+        }
+
+        /* About Section */
+        .about {
+            background: linear-gradient(135deg, #FAF8F5 0%, #FFFFFF 100%);
+            position: relative;
+        }
+
+        .about::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(212, 175, 55, 0.08) 35px, rgba(212, 175, 55, 0.08) 70px),
+                repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(0, 0, 0, 0.03) 35px, rgba(0, 0, 0, 0.03) 70px);
+            pointer-events: none;
+        }
+
+        .about .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .about-content {
+            max-width: 900px;
+            margin: 0 auto 4rem;
+            font-size: 1.2rem;
+            line-height: 2;
+            color: #333333;
+            text-align: center;
+        }
+
+        .about-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .team {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3rem;
+            margin: 4rem 0;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .team-member {
+            text-align: center;
+            padding: 2.5rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 2px solid rgba(212, 175, 55, 0.2);
+            transition: all 0.3s;
+        }
+
+        .team-member:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(212, 175, 55, 0.15);
+            border-color: #D4AF37;
+        }
+
+        .team-member h3 {
+            font-size: 1.8rem;
+            color: #722F37;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .team-member .role {
+            color: #666666;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            background: #D4AF37;
+            color: #000000;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            border: 2px solid #D4AF37;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .social-links a:hover {
+            background: #000000;
+            color: #D4AF37;
+            transform: translateY(-3px);
+        }
+
+        .github-link {
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        .github-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1.2rem 2.5rem;
+            background: #000000;
+            color: #D4AF37;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid #D4AF37;
+        }
+
+        .github-link a:hover {
+            background: #D4AF37;
+            color: #000000;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        /* Footer */
+        footer {
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            color: #D4AF37;
+            text-align: center;
+            padding: 2rem 0;
+            border-top: 3px solid #D4AF37;
+        }
+
+        footer p {
+            font-size: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+
+            .hero p {
+                font-size: 1.3rem;
+            }
+
+            .features-grid,
+            .team {
+                grid-template-columns: 1fr;
+            }
+
+            section h2 {
+                font-size: 2.5rem;
+            }
+
+            .nav-links {
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <a href="#home" class="logo">APEX RENTALS</a>
+            <ul class="nav-links">
+                <li><a href="#home">HOME</a></li>
+                <li><a href="#features">FEATURES</a></li>
+                <li><a href="#about">ABOUT</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <h1>APEX RENTALS</h1>
+            <div class="gold-line"></div>
+            <p>Experience unparalleled luxury with our exclusive collection of yachts, exotic cars, and private jets</p>
+            <a href="#features" class="btn">EXPLORE FEATURES</a>
+            <p style="margin-top: 1.5rem; font-size: 1rem; color: #D4AF37;">Platform deployment coming soon</p>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2>Platform Features</h2>
+            <div class="gold-line"></div>
+            <p class="section-subtitle">
+                A comprehensive solution connecting luxury asset owners with discerning clients
+            </p>
+
+            <div class="features-grid">
+                <div class="feature">
+                    <h3>Dual Portal System</h3>
+                    <p>Separate interfaces for asset owners and clients, each with role-specific dashboards. Owners manage their fleet while clients browse and book seamlessly with full authentication and security.</p>
+                </div>
+
+                <div class="feature">
+                    <h3>Smart Booking Management</h3>
+                    <p>Dynamic availability tracking prevents double-bookings. Assets automatically update their status, and owners receive instant booking requests with detailed client information and date ranges.</p>
+                </div>
+
+                <div class="feature">
+                    <h3>Premium Asset Categories</h3>
+                    <p>Purpose-built for the luxury market with dedicated sections for yachts, exotic cars, and private jets. Each category features tailored color themes and filtering options for an elevated user experience.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <h2>Our Story</h2>
+            <div class="gold-line"></div>
+            
+            <div class="about-content">
+                <p>
+                    We both love luxury vehicles—the engineering, the experience, all of it. When we started looking into the rental market, we noticed something: there's no platform that handles yachts, exotic cars, and private jets all in one place. Especially not in Puerto Rico.
+                </p>
+                <p>
+                    That's where Apex Rentals comes in. Asset owners need a reliable way to rent out their inventory without dealing with unverified clients or booking conflicts. Renters want a trustworthy place to find luxury assets without the usual hassle. We built this as the intermediary—verified sellers, smart booking management that prevents double-bookings, and a straightforward interface.
+                </p>
+                <p>
+                    This is our capstone project for Holberton School, representing everything we've learned about building solutions to actual problems.
+                </p>
+            </div>
+
+            <div class="team">
+                <div class="team-member">
+                    <h3>Joan</h3>
+                    <p class="role">Frontend Developer</p>
+                    <p>Led the development of the React frontend, creating an intuitive and visually stunning user experience that reflects the luxury positioning of the platform.</p>
+                    <div class="social-links">
+                        <a href="https://github.com/Joan938" target="_blank" title="Visit Joan's GitHub">
+                            <span style="font-weight: bold; font-size: 0.9rem;">GitHub</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="team-member">
+                    <h3>Aurelio</h3>
+                    <p class="role">Backend Developer</p>
+                    <p>Architected the Flask backend with robust API endpoints, authentication systems, and database management to ensure reliable and secure operations.</p>
+                    <div class="social-links">
+                        <a href="https://github.com/aureliopagan" target="_blank" title="Visit Aurelio's GitHub">
+                            <span style="font-weight: bold; font-size: 0.9rem;">GitHub</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="github-link">
+                <a href="https://github.com/aureliopagan/Apex-Rentals_project" target="_blank">
+                    <span>VIEW PROJECT REPOSITORY</span>
+                </a>
+            </div>
+
+            <div class="about-content" style="margin-top: 3rem;">
+                <p style="font-size: 1rem; color: #666666;">
+                    Built as a Portfolio Project for <a href="https://www.holbertonschool.com" target="_blank" style="color: #D4AF37; text-decoration: none; font-weight: bold;">Holberton School</a> | Cohort 26 | Aguadilla, Puerto Rico
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Apex Rentals. A Holberton School Portfolio Project.</p>
+        </div>
+    </footer>
+</body>
+</html>
